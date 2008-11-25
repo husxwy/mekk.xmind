@@ -20,6 +20,9 @@ t.add_subtopic(u"Trzeci i półtora")
 root_topic.add_subtopic(u"Wolnogłówny", detached = True)
 t.add_subtopic(u"Wolnopodtrzeci", detached = True)
 t.add_marker("flag-red")
+root_topic.add_subtopic(u"Linkowany").set_link("http://mekk.waw.pl")
+root_topic.add_subtopic(u"Załączony").set_attachment(
+    file("map_creator.py").read(), ".txt")
 
 xmind.save(OUTPUT)
 

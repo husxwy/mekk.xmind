@@ -69,31 +69,33 @@ class Sheet(object):
     Reprezentacja strony (tj. diagramu)
     """
     @classmethod
-    def create(cls, doc_tag, sheet_name, root_topic_name):
-        sheet_tag = etree.SubElement(doc_tag, "sheet", 
+    def create(cls, doc, sheet_name, root_topic_name):
+        sheet_tag = etree.SubElement(doc.doc_tag, "sheet", 
                                      id = id_gen.next())
-        sheet = Sheet(sheet_tag)
+        sheet = Sheet(sheet_tag, doc)
         sheet.set_title(sheet_name)
         topic_tag = etree.SubElement(sheet_tag, u"topic", 
                                      id = id_gen.next())
         etree.SubElement(topic_tag, u"title").text = root_topic_name
         return sheet
     
-    def __init__(self, sheet_tag):
+    def __init__(self, sheet_tag, doc):
         self.sheet_tag = sheet_tag
+        self.doc = doc
     
     def set_title(self, title):
         find_or_create_tag(self.sheet_tag, "title").text = title
     
     def get_root_topic(self):
-        return Topic(find_tag(self.sheet_tag, "topic"))
+        return Topic(find_tag(self.sheet_tag, "topic"), self.doc)
 
 class Topic(object):
     """
     Reprezentacja pojedynczego tematu (czyli wpisu).
     """    
-    def __init__(self, topic_tag):
+    def __init__(self, topic_tag, doc):
         self.topic_tag = topic_tag
+        self.doc = doc
     def add_subtopic(self, subtopic_title, subtopic_emb_id = None, detached = False):
         children_tag = find_or_create_tag(self.topic_tag, "children")
         mode = detached and "detached" or "attached"
@@ -105,7 +107,7 @@ class Topic(object):
         subtopic_tag = etree.SubElement(topics_tag, u"topic", 
                                         id = id_gen.next(subtopic_emb_id))
         etree.SubElement(subtopic_tag, u"title").text = subtopic_title
-        return Topic(subtopic_tag)        
+        return Topic(subtopic_tag, self.doc)        
 
     def set_title(self, title):
         find_or_create_tag(self.topic_tag, "title").text = title
@@ -115,6 +117,26 @@ class Topic(object):
         if mr is None:
             mr = etree.SubElement(self.topic_tag, "marker-refs")
         etree.SubElement(mr, "marker-ref", attrib={"marker-id": marker})
+
+    def set_link(self, url):
+        """
+        Dodaje link. Url to np. http://info.onet.pl
+        Uwaga: nadpisuje ewentualny istniejący attachment!
+        """
+        self.topic_tag.set("{http://www.w3.org/1999/xlink}href", url)
+
+    def set_attachment(self, data, extension):
+        """
+        Dodaje załącznik (wpisuje go do pliku i dowiązuje w tym topicu).
+        Uwaga: nadmazuje ewentualny link.
+        
+        @param data dane (po prostu treść pliku do wpisania)
+        @param extension (rozszerzenie nazwy pliku, np. '.txt')
+        """
+        att_name = id_gen.next() + extension
+        self.doc._create_attachment(att_name, data)
+        self.topic_tag.set("{http://www.w3.org/1999/xlink}href", "xap:attachments/" + att_name)
+
 
 class XMindDocument(object):
     """
@@ -138,25 +160,29 @@ class XMindDocument(object):
         """
         Otwiera istniejący dokument
         """
+        # TODO: otworzyć zipa, zapisać listę attachmentów, sparsować style
+        # oraz główny content
+        raise NotImplementedError
         xml = etree.parse(file(filename, "r"))
         return XMindDocument(xml)
     
-    def __init__(self, doc_tag, styles_tag):
+    def __init__(self, doc_tag, styles_tag, attachments = None):
         """
         Wspólny konstruktor. Nie używać bezpośrendnio,
         należy korzystać z metod create albo open.
         """
         self.doc_tag = doc_tag
         self.styles_tag = styles_tag
+        self.attachments = {}
     
     def create_sheet(self, sheet_name, root_topic_name):
-        sheet = Sheet.create(self.doc_tag,
+        sheet = Sheet.create(self,
                              sheet_name, root_topic_name)
         return sheet
     
     def get_first_sheet(self):
         tag = find_tag(self.doc_tag, "sheet")
-        return Sheet(tag)
+        return Sheet(tag, self)
 
     def save(self, zipfilename):
         zipf = zipfile.ZipFile(zipfilename, "w")
@@ -166,10 +192,18 @@ class XMindDocument(object):
            self._serialize_xml(self.styles_tag))
         self._add_to_zip(zipf, "meta.xml", META_FILE_CONTENT)
         self._add_to_zip(zipf, "META-INF/manifest.xml", MANIFEST_FILE_CONTENT)
+        for name, data in self.attachments.iteritems():
+            self._add_to_zip(zipf, "attachments/" + name, data)
         
     def pretty_print(self):
         print self._serialize_xml(self.doc_tag)
         print self._serialize_xml(self.styles_tag)
+
+    def _create_attachment(self, internal_name, data):
+        """
+        Nie używać! Używać metody set_attachment klasy Topic
+        """
+        self.attachments[internal_name] = data
 
     def _add_to_zip(self, zipf, name, content):
         if type(content) == unicode:
