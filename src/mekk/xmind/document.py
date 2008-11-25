@@ -96,11 +96,9 @@ class Topic(object):
         children_tag = find_or_create_tag(self.topic_tag, "children")
         mode = detached and "detached" or "attached"
         #topics_tag = children_tag.xpath("topics[@type='%s']" % mode)
+        #topics_tag[0]
         topics_tag = children_tag.find("topics[@type='%s']" % mode)
-        if topics_tag:
-            pass
-            #topics_tag = topics_tag[0]
-        else:
+        if topics_tag is None:
             topics_tag = etree.SubElement(children_tag, u"topics", type = mode)
         subtopic_tag = etree.SubElement(topics_tag, u"topic", 
                                         id = id_gen.next(subtopic_emb_id))
