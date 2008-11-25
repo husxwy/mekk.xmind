@@ -112,7 +112,7 @@ class Topic(object):
     
     def add_marker(self, marker):
         mr = self.topic_tag.find("marker-refs")
-        if not mr:
+        if mr is None:
             mr = etree.SubElement(self.topic_tag, "marker-refs")
         etree.SubElement(mr, "marker-ref", attrib={"marker-id": marker})
 
