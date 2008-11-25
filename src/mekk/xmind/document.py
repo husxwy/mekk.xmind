@@ -137,6 +137,16 @@ class Topic(object):
         self.doc._create_attachment(att_name, data)
         self.topic_tag.set("{http://www.w3.org/1999/xlink}href", "xap:attachments/" + att_name)
 
+    def set_note(self, note_text):
+        """
+        Ustawia treść notki. Tekst może być wielowierszowy.
+        """
+        # TODO: obsługa HTML
+        notes_tag = find_or_create_tag(self.topic_tag, "notes")
+        find_or_create_tag(notes_tag, "plain").text = note_text
+        html_tag = find_or_create_tag(notes_tag, "html")
+        for l in note_text.split("\n"):
+            etree.SubElement(html_tag, "{http://www.w3.org/1999/xhtml}p").text = l
 
 class XMindDocument(object):
     """
