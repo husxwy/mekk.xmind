@@ -191,9 +191,14 @@ class XMindDocument(object):
         self._add_to_zip(zipf, "styles.xml",
            self._serialize_xml(self.styles_tag))
         self._add_to_zip(zipf, "meta.xml", META_FILE_CONTENT)
-        self._add_to_zip(zipf, "META-INF/manifest.xml", MANIFEST_FILE_CONTENT)
+        manifest_content = MANIFEST_FILE_CONTENT
         for name, data in self.attachments.iteritems():
-            self._add_to_zip(zipf, "attachments/" + name, data)
+            path = "attachments/" + name
+            self._add_to_zip(zipf, path, data)
+            manifest_content = manifest_content.replace(
+                "</manifest>",
+                ('<file-entry full-path="%s" media-type=""/>' % path) + "\n</manifest>")
+        self._add_to_zip(zipf, "META-INF/manifest.xml", manifest_content)
         
     def pretty_print(self):
         print self._serialize_xml(self.doc_tag)
