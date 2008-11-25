@@ -4,3 +4,5 @@ syntax: regexp
 semantic\.cache$
 \.py[co]$
 ^src/mekk\.xmind\.egg-info
+^build/
+^dist/
