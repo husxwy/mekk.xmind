@@ -1,8 +1,15 @@
 # -*- coding: utf-8 -*-
-
+#try:
+#    from lxml import etree
+#except ImportError:
+#    from xml.etree import ElementTree as etree
+# xml.etree działa ale by szukać z [@x='a'] potrzeba wersji 1.3
 from lxml import etree
 import zipfile
 from id_gen import IdGen
+
+# Na windows działa easy_install lxml==2.1.3
+# (ogólnie jakaś wersja co ma buidl win)
 
 CONTENT_NSMAP = {
     None : "urn:xmind:xmap:xmlns:content:2.0",
@@ -88,9 +95,11 @@ class Topic(object):
     def add_subtopic(self, subtopic_title, subtopic_emb_id = None, detached = False):
         children_tag = find_or_create_tag(self.topic_tag, "children")
         mode = detached and "detached" or "attached"
-        topics_tag = children_tag.xpath("topics[@type='%s']" % mode)
+        #topics_tag = children_tag.xpath("topics[@type='%s']" % mode)
+        topics_tag = children_tag.find("topics[@type='%s']" % mode)
         if topics_tag:
-            topics_tag = topics_tag[0]
+            pass
+            #topics_tag = topics_tag[0]
         else:
             topics_tag = etree.SubElement(children_tag, u"topics", type = mode)
         subtopic_tag = etree.SubElement(topics_tag, u"topic", 

@@ -6,7 +6,7 @@ Prawdziwe uruchomienie
 
 from mekk.xmind import XMindDocument
 
-OUTPUT = "/tmp/test.xmind"
+OUTPUT = "test.xmind"
 
 xmind = XMindDocument.create(u"Główna kartka", u"Luźne pomysły")
 first_sheet = xmind.get_first_sheet()
