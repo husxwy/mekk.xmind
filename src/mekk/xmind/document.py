@@ -36,12 +36,14 @@ MANIFEST_FILE_CONTENT = u'''<?xml version="1.0" encoding="UTF-8" standalone="no"
   <file-entry full-path="Thumbnails/thumbnail.jpg" media-type="image/jpeg"/>
 </manifest>'''
 
-
+# Patrz org.xmind.ui.resources/markers/markerSheet.xml
 ALL_MARKS = [
-    'priority-1', 'priority-2', 'priority-3', 'priority-4', 'priority-5',
-    'flag-red', 'flag-orange', 'flag-green', 'flag-purple', 'flag-blue',
-    'smiley-smile', 'smiley-laugh', 'smiley-angry', 'smiley-cry', 'smiley-surprise',
-    'other-calendar', 'other-email', 'other-phone', 'other-fax', 'other-people',
+    'priority-1', 'priority-2', 'priority-3', 'priority-4', 'priority-5', 'priority-6',
+    'flag-red', 'flag-orange', 'flag-green', 'flag-purple', 'flag-blue', 'flag-black',
+    'smiley-smile', 'smiley-laugh', 'smiley-angry', 'smiley-cry', 'smiley-surprise', 'smiley-boring',
+    'other-calendar', 'other-email', 'other-phone', 'other-fax', 'other-people', 
+    'other-clock', 'other-coffee-cup', 'other-question', 'other-exclam', 'other-lightbulb',
+    'task-start', 'task-quarter', 'task-half', 'task-3quar', 'task-done', 'task-pause',
 ]
 
 id_gen = IdGen(26, 16)
