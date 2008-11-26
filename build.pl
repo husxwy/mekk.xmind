@@ -1,0 +1,123 @@
+#!/usr/bin/perl -w
+# -*- coding: utf-8 -*-
+#
+# Skrypt budujący dystrybucję:
+# - koryguje numer wersji
+# - nakłada tag
+# - odpala budujący setup
+# - wgrywa na mekka
+
+use strict;
+use FindBin;
+use File::Spec::Functions;
+use File::Copy;
+use Tie::File;
+
+my $MODULE_NAME = "mekk.xmind";
+my $PYTHON_VERSION = "py2.5";
+
+chdir $FindBin::Bin or die "chdir failed: $!\n";
+
+#################################################################
+# Ustalenie numerka wersji, skorygowanie go w setup.py
+# nałożenie tagu.
+#################################################################
+
+my $what = shift @ARGV || '';
+unless ($what =~ /^(major|minor|patch|devel|rebuild)$/) {
+    print "Usage:\n$0 [major|minor|patch|devel|rebuild]\n";
+    exit(1);
+}
+
+my $version;
+
+if ($what ne 'devel') {
+    my $status = `hg status src README.txt setup.py setup.cfg`;
+    if ($status) {
+        die "Uncommited changes found\n";
+    }
+    my @newest = (0,0,0);
+    open(F, "hg tags|");
+    while(<F>) {
+        if(/^(\d+)\.(\d+)\.(\d+)\b/) {
+            if( $1 > $newest[0]
+                  || ($1 == $newest[0]
+                        && ($2 > $newest[1]
+                              || ($2 == $newest[1] && $3 > $newest[2])))) {
+                @newest = ($1, $2, $3);
+            }
+        }
+    }
+    close(F);
+
+    if ($what eq 'major') {
+        $version = join('.', $newest[0]+1, 0, 0);
+    }
+    elsif ($what eq 'minor') {
+        $version = join('.', $newest[0], $newest[1]+1, 0);
+    }
+    elsif ($what eq 'patch') {
+        $version = join('.', $newest[0], $newest[1], $newest[2]+1);
+    }
+    elsif ($what eq 'rebuild') {
+        $version = join('.', $newest[0], $newest[1], $newest[2]);
+    }
+    else {
+        die "Ups\n";
+    }
+
+    print "Creating version: $version"
+      . ($what eq 'rebuild' ? " (rebuild - don't do it if already published)": "")
+      . "\n";
+    my $x;
+    do {
+        {
+          local $/ = undef;
+          print "Is it OK (y/n): ";
+        }
+        $x = <STDIN>;
+        $x =~ s/[\s\r\n]+//g;
+        $x = lc($x);
+    } while $x !~ /^[yn]$/;
+    if ($x eq 'n') {
+        exit(0);
+    }
+
+    foreach my $filename (
+        'setup.py',
+       ) {
+        my @array;
+        tie @array, 'Tie::File', $filename
+          or die "Can't read $filename: $!\n";
+        foreach (@array) {
+            s/(version\s*=\s*')\d+\.\d+(\.\d+)?/$1$version/;
+        }
+    }
+
+    system("hg commit -m 'version patch $version'") and die $!;
+    system("hg tag $version") and die $!;
+}
+else {
+    $version = 'devel';
+}
+
+#################################################################
+# Uruchomienie setupu
+#################################################################
+
+system("python setup.py bdist_egg") and die "Setup failed!";
+
+#################################################################
+# Kopiowanie
+#################################################################
+
+my $EGG_FILE = catfile($FindBin::Bin, "dist", $MODULE_NAME . "-" . $version . "-" . $PYTHON_VERSION . ".egg");
+
+unless( -f $EGG_FILE ) {
+    die "$EGG_FILE not found. Setup failed?\n";
+}
+
+system("scp $EGG_FILE linode.mekk.waw.pl:www_download/nozbe2xmind/");
+
+print "Uploaded http://mekk.waw.pl/download/nozbe2xmind/$EGG_FILE");
+
