@@ -19,6 +19,29 @@ my $PYTHON_VERSION = "py2.5";
 chdir $FindBin::Bin or die "chdir failed: $!\n";
 
 #################################################################
+# Funkcje pomocnicze
+#################################################################
+
+sub ask_yes_no {
+    my $question = shift;
+    my $x;
+    do {
+        {
+          local $/ = undef;
+          print "$question (y/n): ";
+        }
+        $x = <STDIN>;
+        $x =~ s/[\s\r\n]+//g;
+        $x = lc($x);
+    } while $x !~ /^[yn]$/;
+    if ($x eq 'y') {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+#################################################################
 # Ustalenie numerka wersji, skorygowanie go w setup.py
 # nałożenie tagu.
 #################################################################
@@ -69,17 +92,7 @@ if ($what ne 'devel') {
     print "Creating version: $version"
       . ($what eq 'rebuild' ? " (rebuild - don't do it if already published)": "")
       . "\n";
-    my $x;
-    do {
-        {
-          local $/ = undef;
-          print "Is it OK (y/n): ";
-        }
-        $x = <STDIN>;
-        $x =~ s/[\s\r\n]+//g;
-        $x = lc($x);
-    } while $x !~ /^[yn]$/;
-    if ($x eq 'n') {
+    unless (ask_yes_no("Is it OK")) {
         exit(0);
     }
 
@@ -111,7 +124,13 @@ system("python setup.py bdist_egg") and die "Setup failed!";
 # Kopiowanie
 #################################################################
 
-my $EGG_FILE = catfile($FindBin::Bin, "dist", $MODULE_NAME . "-" . $version . "-" . $PYTHON_VERSION . ".egg");
+my $EGG_NAME = $MODULE_NAME . "-" . $version . "-" . $PYTHON_VERSION . ".egg";
+my $EGG_FILE = catfile($FindBin::Bin, "dist", $EGG_NAME);
+
+print "Uploading $EGG_NAME\n";
+unless (ask_yes_no("Is it OK")) {
+    exit(0);
+}
 
 unless( -f $EGG_FILE ) {
     die "$EGG_FILE not found. Setup failed?\n";
@@ -119,5 +138,5 @@ unless( -f $EGG_FILE ) {
 
 system("scp $EGG_FILE linode.mekk.waw.pl:www_download/nozbe2xmind/");
 
-print "Uploaded http://mekk.waw.pl/download/nozbe2xmind/$EGG_FILE");
+print "Uploaded http://mekk.waw.pl/download/nozbe2xmind/$EGG_NAME\n";
 
