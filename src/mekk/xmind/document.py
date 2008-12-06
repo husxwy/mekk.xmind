@@ -19,6 +19,15 @@ CONTENT_NSMAP = {
     "xlink" : "http://www.w3.org/1999/xlink",
 }
 
+def content_name(ns, what):
+    """
+    Generuje nazwę zawierającą namespace, np.
+
+    >>> content_name("svg", "x")
+    "{http://www.w3.org/2000/svg}x"
+    """
+    return "{%s}%s" % (CONTENT_NSMAP[ns], what)
+
 STYLES_NSMAP = {
     None : "urn:xmind:xmap:xmlns:style:2.0",
     "fo" : "http://www.w3.org/1999/XSL/Format",
@@ -41,7 +50,7 @@ ALL_MARKS = [
     'priority-1', 'priority-2', 'priority-3', 'priority-4', 'priority-5', 'priority-6',
     'flag-red', 'flag-orange', 'flag-green', 'flag-purple', 'flag-blue', 'flag-black',
     'smiley-smile', 'smiley-laugh', 'smiley-angry', 'smiley-cry', 'smiley-surprise', 'smiley-boring',
-    'other-calendar', 'other-email', 'other-phone', 'other-fax', 'other-people', 
+    'other-calendar', 'other-email', 'other-phone', 'other-fax', 'other-people',
     'other-clock', 'other-coffee-cup', 'other-question', 'other-exclam', 'other-lightbulb',
     'task-start', 'task-quarter', 'task-half', 'task-3quar', 'task-done', 'task-pause',
 ]
@@ -64,35 +73,71 @@ def find_tag(parent, tag_name):
         raise Exception("Tag %(tag_name)s not found" % locals())
     return child
 
+class Legend(object):
+    """
+    Legenda mapy czyli spis markerów z opisami
+    """
+    @classmethod
+    def create(cls, sheet_tag):
+        """
+        Tworzy. x_pos i y_pos to pozycje względem centrum mapy
+        (ujemne to lewy górny róg, np.)
+        """
+        legend_tag = etree.SubElement(sheet_tag, u"legend", visibility = "visible")
+        return Legend(legend_tag)
+    def __init__(self, legend_tag):
+        self.legend_tag = legend_tag
+    def set_position(self, x_pos, y_pos):
+        pos = find_or_create_tag(self.legend_tag, "position")
+        pos.set(content_nsmap("svg", "x"), x_pos)
+        pos.set(content_nsmap("svg", "y"), y_pos)
+    def add_marker(self, marker_id, description):
+        """
+        Dodaje kolejny marker do legendy. marker_id to albo kodowe
+        oznaczenie Xmind (priority-1 itp) albo hasz identyfikacyjny
+        własnego markera
+        """
+        md = find_or_create_tag(self.legend_tag, "marker-descriptions")
+        etree.SubElement(md, u"marker-description",
+                         attrib={"marker-id": marker_id,
+                                 "description": description})
+
 class Sheet(object):
     """
     Reprezentacja strony (tj. diagramu)
     """
     @classmethod
     def create(cls, doc, sheet_name, root_topic_name):
-        sheet_tag = etree.SubElement(doc.doc_tag, "sheet", 
+        sheet_tag = etree.SubElement(doc.doc_tag, "sheet",
                                      id = id_gen.next())
         sheet = Sheet(sheet_tag, doc)
         sheet.set_title(sheet_name)
-        topic_tag = etree.SubElement(sheet_tag, u"topic", 
+        topic_tag = etree.SubElement(sheet_tag, u"topic",
                                      id = id_gen.next())
         etree.SubElement(topic_tag, u"title").text = root_topic_name
         return sheet
-    
+
     def __init__(self, sheet_tag, doc):
         self.sheet_tag = sheet_tag
         self.doc = doc
-    
+
     def set_title(self, title):
         find_or_create_tag(self.sheet_tag, "title").text = title
-    
+
     def get_root_topic(self):
         return Topic(find_tag(self.sheet_tag, "topic"), self.doc)
+
+    def get_legend(self):
+        l = self.sheet_tag.find("legend")
+        if l:
+            return Legend(l)
+        else:
+            return Legend.create(self.sheet_tag)
 
 class Topic(object):
     """
     Reprezentacja pojedynczego tematu (czyli wpisu).
-    """    
+    """
     def __init__(self, topic_tag, doc):
         self.topic_tag = topic_tag
         self.doc = doc
@@ -104,14 +149,14 @@ class Topic(object):
         topics_tag = children_tag.find("topics[@type='%s']" % mode)
         if topics_tag is None:
             topics_tag = etree.SubElement(children_tag, u"topics", type = mode)
-        subtopic_tag = etree.SubElement(topics_tag, u"topic", 
+        subtopic_tag = etree.SubElement(topics_tag, u"topic",
                                         id = id_gen.next(subtopic_emb_id))
         etree.SubElement(subtopic_tag, u"title").text = subtopic_title
-        return Topic(subtopic_tag, self.doc)        
+        return Topic(subtopic_tag, self.doc)
 
     def set_title(self, title):
         find_or_create_tag(self.topic_tag, "title").text = title
-    
+
     def add_marker(self, marker):
         mr = self.topic_tag.find("marker-refs")
         if mr is None:
@@ -129,7 +174,7 @@ class Topic(object):
         """
         Dodaje załącznik (wpisuje go do pliku i dowiązuje w tym topicu).
         Uwaga: nadmazuje ewentualny link.
-        
+
         @param data dane (po prostu treść pliku do wpisania)
         @param extension (rozszerzenie nazwy pliku, np. '.txt')
         """
@@ -153,7 +198,7 @@ class XMindDocument(object):
     Reprezentacja obiektu dokumentu XMinda. Służy zarówno do tworzenia nowych
     dokumentów, jak do analizy istniejących.
     """
-    
+
     @classmethod
     def create(cls, first_sheet_name, root_topic_name):
         """
@@ -175,7 +220,7 @@ class XMindDocument(object):
         raise NotImplementedError
         xml = etree.parse(file(filename, "r"))
         return XMindDocument(xml)
-    
+
     def __init__(self, doc_tag, styles_tag, attachments = None):
         """
         Wspólny konstruktor. Nie używać bezpośrendnio,
@@ -184,19 +229,19 @@ class XMindDocument(object):
         self.doc_tag = doc_tag
         self.styles_tag = styles_tag
         self.attachments = {}
-    
+
     def create_sheet(self, sheet_name, root_topic_name):
         sheet = Sheet.create(self,
                              sheet_name, root_topic_name)
         return sheet
-    
+
     def get_first_sheet(self):
         tag = find_tag(self.doc_tag, "sheet")
         return Sheet(tag, self)
 
     def save(self, zipfilename):
         zipf = zipfile.ZipFile(zipfilename, "w")
-        self._add_to_zip(zipf, "content.xml", 
+        self._add_to_zip(zipf, "content.xml",
            self._serialize_xml(self.doc_tag))
         self._add_to_zip(zipf, "styles.xml",
            self._serialize_xml(self.styles_tag))
@@ -209,7 +254,7 @@ class XMindDocument(object):
                 "</manifest>",
                 ('<file-entry full-path="%s" media-type=""/>' % path) + "\n</manifest>")
         self._add_to_zip(zipf, "META-INF/manifest.xml", manifest_content)
-        
+
     def pretty_print(self):
         print self._serialize_xml(self.doc_tag)
         print self._serialize_xml(self.styles_tag)
@@ -228,9 +273,9 @@ class XMindDocument(object):
         return etree.tostring(
             tag,
             encoding = "utf-8", method="xml",
-            xml_declaration=True, pretty_print=True, 
+            xml_declaration=True, pretty_print=True,
             with_tail=True)
-        
+
 # TODO: obsługa styli
 #
 # <xmap-styles xmlns="urn:xmind:xmap:xmlns:style:2.0" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:svg="http://www.w3.org/2000/svg" version="2.0">
