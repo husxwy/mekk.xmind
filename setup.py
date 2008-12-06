@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-version = '0.1.0'
+version = '0.2.0'
 long_description = open("README.txt").read()
 classifiers = [
     "Programming Language :: Python",
