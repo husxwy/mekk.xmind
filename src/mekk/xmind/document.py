@@ -193,6 +193,36 @@ class Topic(object):
         for l in note_text.split("\n"):
             etree.SubElement(html_tag, "{http://www.w3.org/1999/xhtml}p").text = l
 
+    def set_style(self, style):
+        """
+        Nadaje notce specyficzny styl. Parametr to TopicStyle
+        """
+        self.topic_tag.set("style-id", style.get_id())
+
+class TopicStyle(object):
+    @classmethod
+    def create(cls, doc,
+               fill, shape = "org.xmind.topicShape.ellipse",
+               line_color = "#CACACA", line_width = "1pt"):
+        """
+        Kolor to np #37D02B
+        """
+        styles = find_or_create_tag(doc.styles_tag, "styles")
+        style_tag = etree.SubElement(styles, "style",
+                                     id = id_gen.next(), type="topic")
+        etree.SubElement(style_tag, "topic-properties",
+                         attrib = {
+                                   "line-color" : line_color,
+                                   "line-width" : line_width,
+                                   "shape-class" : shape,
+                                   content_name("svg", "fill") : fill,
+                                   })
+        return TopicStyle(style_tag)
+    def __init__(self, style_tag):
+        self.style_tag = style_tag
+    def get_id(self):
+        return self.style_tag.get("id")
+
 class XMindDocument(object):
     """
     Reprezentacja obiektu dokumentu XMinda. Służy zarówno do tworzenia nowych
@@ -234,6 +264,12 @@ class XMindDocument(object):
         sheet = Sheet.create(self,
                              sheet_name, root_topic_name)
         return sheet
+
+    def create_topic_style(self, *args, **kwargs):
+        """
+        Wrapper dookoła TopicStyle.create. Te same parametry
+        """
+        return TopicStyle.create(self, *args, **kwargs)
 
     def get_first_sheet(self):
         tag = find_tag(self.doc_tag, "sheet")
