@@ -6,33 +6,14 @@
 # xml.etree działa ale by szukać z [@x='a'] potrzeba wersji 1.3
 from lxml import etree
 import zipfile
-from id_gen import IdGen
+from id_gen import IdGen, qualify_id
+from xmlutil import ns_name, find_or_create_tag, find_tag, find_tags
+import logging
+log = logging.getLogger(__name__)
 
-# Na windows działa easy_install lxml==2.1.3
-# (ogólnie jakaś wersja co ma buidl win)
+DUMP_PARSED_DATA = False
 
-CONTENT_NSMAP = {
-    None : "urn:xmind:xmap:xmlns:content:2.0",
-    "fo" : "http://www.w3.org/1999/XSL/Format",
-    "svg" : "http://www.w3.org/2000/svg",
-    "xhtml" : "http://www.w3.org/1999/xhtml",
-    "xlink" : "http://www.w3.org/1999/xlink",
-}
-
-def content_name(ns, what):
-    """
-    Generuje nazwę zawierającą namespace, np.
-
-    >>> content_name("svg", "x")
-    "{http://www.w3.org/2000/svg}x"
-    """
-    return "{%s}%s" % (CONTENT_NSMAP[ns], what)
-
-STYLES_NSMAP = {
-    None : "urn:xmind:xmap:xmlns:style:2.0",
-    "fo" : "http://www.w3.org/1999/XSL/Format",
-    "svg" : "http://www.w3.org/2000/svg",
-}
+ATTACHMENTS_DIR = "attachments/"
 
 META_FILE_CONTENT = u'<?xml version="1.0" encoding="UTF-8" standalone="no"?><meta xmlns="urn:xmind:xmap:xmlns:meta:2.0" version="2.0"/>'
 MANIFEST_FILE_CONTENT = u'''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
@@ -60,22 +41,6 @@ SHAPE_ROUND_RECTANGLE = "org.xmind.topicShape.roundedRect"
 SHAPE_ELLIPSIS = "org.xmind.topicShape.ellipse"
 
 id_gen = IdGen(26, 16)
-
-def find_or_create_tag(parent, tag_name):
-    """
-    If parent contains tag tag_name, returns its obj.
-    Otherwise creates one and returns.
-    """
-    child = parent.find(tag_name)
-    if child is None:
-        child = etree.SubElement(parent, tag_name)
-    return child
-
-def find_tag(parent, tag_name):
-    child = parent.find(tag_name)
-    if child is None:
-        raise Exception("Tag %(tag_name)s not found" % locals())
-    return child
 
 class Legend(object):
     """
@@ -145,27 +110,53 @@ class Topic(object):
     def __init__(self, topic_tag, doc):
         self.topic_tag = topic_tag
         self.doc = doc
-    def add_subtopic(self, subtopic_title, subtopic_emb_id = None, detached = False):
+
+    def get_embedded_id(self):
+        """
+        Jeśli projekt ma zakopane id, to je zwraca.
+        """
+        return qualify_id(self.topic_tag.get("id"))
+
+    def _subtopics_tag(self, detached = False):
         children_tag = find_or_create_tag(self.topic_tag, "children")
         mode = detached and "detached" or "attached"
         #topics_tag = children_tag.xpath("topics[@type='%s']" % mode)
         #topics_tag[0]
-        topics_tag = children_tag.find("topics[@type='%s']" % mode)
+        topics_tag = children_tag.find(ns_name("xm", "topics[@type='%s']" % mode))
         if topics_tag is None:
             topics_tag = etree.SubElement(children_tag, u"topics", type = mode)
+        return topics_tag
+    def add_subtopic(self, subtopic_title, subtopic_emb_id = None, detached = False):
+        topics_tag = self._subtopics_tag(detached)
         subtopic_tag = etree.SubElement(topics_tag, u"topic",
                                         id = id_gen.next(subtopic_emb_id))
         etree.SubElement(subtopic_tag, u"title").text = subtopic_title
         return Topic(subtopic_tag, self.doc)
+    def get_subtopics(self, detached = False):
+        """
+        Generator wyliczający wszystkie pod-elementy. Domyślnie te przypięte, z parametrem
+        detached te odpięte.
+        """
+        topics_tag = self._subtopics_tag(detached)
+        #for element in topics_tag.iterchildren(tag = ns_name("xm", "topic")):
+        for element in find_tags(topics_tag, "topic"):
+            yield Topic(element, self.doc)
 
     def set_title(self, title):
         find_or_create_tag(self.topic_tag, "title").text = title
+    def get_title(self):
+        return find_or_create_tag(self.topic_tag, ns_name("xm", "title")).text
 
     def add_marker(self, marker):
         mr = self.topic_tag.find("marker-refs")
         if mr is None:
             mr = etree.SubElement(self.topic_tag, "marker-refs")
         etree.SubElement(mr, "marker-ref", attrib={"marker-id": marker})
+    def get_markers(self):
+        mr = self.topic_tag.find("marker-refs")
+        if mr:
+            for element in mr.iterchildren(tag = "marker-ref"):
+                yield element.get("marker-id")
 
     def set_link(self, url):
         """
@@ -196,6 +187,9 @@ class Topic(object):
         html_tag = find_or_create_tag(notes_tag, "html")
         for l in note_text.split("\n"):
             etree.SubElement(html_tag, "{http://www.w3.org/1999/xhtml}p").text = l
+    def get_note(self):
+        notes_tag = find_or_create_tag(self.topic_tag, "notes")
+        return find_or_create_tag(notes_tag, "plain").text
 
     def set_label(self, label_text):
         """
@@ -203,6 +197,9 @@ class Topic(object):
         """
         labels_tag = find_or_create_tag(self.topic_tag, "labels")
         find_or_create_tag(labels_tag, "label").text = label_text
+    def get_label(self):
+        labels_tag = find_or_create_tag(self.topic_tag, "labels")
+        return find_or_create_tag(labels_tag, "label").text
 
     def set_style(self, style):
         """
@@ -256,20 +253,44 @@ class XMindDocument(object):
         """
         Otwiera istniejący dokument
         """
-        # TODO: otworzyć zipa, zapisać listę attachmentów, sparsować style
-        # oraz główny content
-        raise NotImplementedError
-        xml = etree.parse(file(filename, "r"))
-        return XMindDocument(xml)
+        zf = zipfile.ZipFile(filename, "r")
+        doc_tag = None
+        styles_tag = None
+        attachments = {}
+        for name in zf.namelist():
+            if name == "content.xml":
+                #doc_tag = etree.parse(zf.open(name), "r")  # python 2.6
+                log.debug("parsing content.xml")
+                doc_tag = etree.XML(zf.read(name))
+            elif name == "styles.xml":
+                log.debug("parsing styles.xml")
+                styles_tag = etree.XML(zf.read(name))
+            elif name in ['meta.xml', 'META-INF/manifest.xml', 'Thumbnails/thumbnail.jpg' ]:
+                pass
+            elif name.startswith(ATTACHMENTS_DIR):
+                short = name[len(ATTACHMENTS_DIR):]
+                log.debug("Found attachment %s" % short)
+                attachments[short] = zf.read(name)
+            else:
+                log.warn("Unknown xmind file member: %s" % name)
 
-    def __init__(self, doc_tag, styles_tag, attachments = None):
+        if (doc_tag is None) or (styles_tag is None):
+            raise Exception("Invalid xmind file: %s" % filename)
+
+        if DUMP_PARSED_DATA:
+            logging.debug("Parsed document:\n%s", etree.tostring(doc_tag, pretty_print = True))
+            logging.debug("Parsed styles:\n%s", etree.tostring(styles_tag, pretty_print = True))
+
+        return XMindDocument(doc_tag, styles_tag, attachments)
+
+    def __init__(self, doc_tag, styles_tag, attachments = {}):
         """
         Wspólny konstruktor. Nie używać bezpośrendnio,
         należy korzystać z metod create albo open.
         """
         self.doc_tag = doc_tag
         self.styles_tag = styles_tag
-        self.attachments = {}
+        self.attachments = attachments
 
     def create_sheet(self, sheet_name, root_topic_name):
         sheet = Sheet.create(self,
@@ -295,7 +316,7 @@ class XMindDocument(object):
         self._add_to_zip(zipf, "meta.xml", META_FILE_CONTENT)
         manifest_content = MANIFEST_FILE_CONTENT
         for name, data in self.attachments.iteritems():
-            path = "attachments/" + name
+            path = ATTACHMENTS_DIR + name
             self._add_to_zip(zipf, path, data)
             manifest_content = manifest_content.replace(
                 "</manifest>",
@@ -305,6 +326,17 @@ class XMindDocument(object):
     def pretty_print(self):
         print self._serialize_xml(self.doc_tag)
         print self._serialize_xml(self.styles_tag)
+
+    def attachment_names(self):
+        """
+        Zwraca listę nazw załączników
+        """
+        return self.attachments.keys()
+    def attachment_body(self, name):
+        """
+        Zwraca treść załącznika o podanej nazwie
+        """
+        return self.attachments[name]
 
     def _create_attachment(self, internal_name, data):
         """
@@ -323,15 +355,3 @@ class XMindDocument(object):
             xml_declaration=True, pretty_print=True,
             with_tail=True)
 
-# TODO: obsługa styli
-#
-# <xmap-styles xmlns="urn:xmind:xmap:xmlns:style:2.0" xmlns:fo="http://www.w3.org/1999/XSL/Format" xmlns:svg="http://www.w3.org/2000/svg" version="2.0">
-# <styles>
-#    <style id="3hj12gila7eq1otcid1q9tn7ji" type="text">
-#      <text-properties fo:color="#000000"/>
-#    </style>
-#    <style id="1402637o7i7qq98bb5uthrmtap" type="topic">
-#      <topic-properties shape-class="org.xmind.topicShape.callout.ellipse"/>
-#    </style>
-#  </styles>
-#</xmap-styles>

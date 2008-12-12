@@ -24,7 +24,7 @@ def qualify_id(id, embedded_length = EMBEDDED_LENGTH):
     zwraca None.
     """
     if id.startswith(PFX_EMBEDDED):
-        return id[-embedded_length]
+        return id[-embedded_length:].lstrip("0")
     else:
         return None
 
@@ -33,8 +33,8 @@ class IdGen(object):
     Generator identyfikatorów uwzględniający możliwość
     wklejania w id zewnętrznego identyfikatora.
     """
-    def __init__(self, 
-                 length = 26, 
+    def __init__(self,
+                 length = 26,
                  embedded_length = EMBEDDED_LENGTH):
         self.simplegen = simple_id_gen(PFX_OTHER, length)
         self.embgen = simple_id_gen(PFX_EMBEDDED, length - embedded_length)
@@ -47,8 +47,8 @@ class IdGen(object):
             return self.simplegen.next()
         else:
             semb = str(embedded)
-            return self.embgen.next() + ("0" * (self.embedded_length - len(semb))) + semb 
-       
+            return self.embgen.next() + ("0" * (self.embedded_length - len(semb))) + semb
+
 if __name__ == "__main__":
     t = simple_id_gen(length = 16, prefix = "ABCD")
     for x in range(0,15):
