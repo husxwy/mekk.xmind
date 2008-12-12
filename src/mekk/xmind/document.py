@@ -193,6 +193,13 @@ class Topic(object):
         for l in note_text.split("\n"):
             etree.SubElement(html_tag, "{http://www.w3.org/1999/xhtml}p").text = l
 
+    def set_label(self, label_text):
+        """
+        Ustawia treść etykiety (widocznej krótkiej notki).
+        """
+        labels_tag = find_or_create_tag(self.topic_tag, "labels")
+        find_or_create_tag(labels_tag, "label").text = label_text
+
     def set_style(self, style):
         """
         Nadaje notce specyficzny styl. Parametr to TopicStyle
