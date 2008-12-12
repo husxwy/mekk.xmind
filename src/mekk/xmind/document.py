@@ -55,6 +55,10 @@ ALL_MARKS = [
     'task-start', 'task-quarter', 'task-half', 'task-3quar', 'task-done', 'task-pause',
 ]
 
+SHAPE_RECTANGLE = "org.xmind.topicShape.rectangle"
+SHAPE_ROUND_RECTANGLE = "org.xmind.topicShape.roundedRect"
+SHAPE_ELLIPSIS = "org.xmind.topicShape.ellipse"
+
 id_gen = IdGen(26, 16)
 
 def find_or_create_tag(parent, tag_name):
@@ -209,7 +213,7 @@ class Topic(object):
 class TopicStyle(object):
     @classmethod
     def create(cls, doc,
-               fill, shape = "org.xmind.topicShape.ellipse",
+               fill, shape = SHAPE_ROUND_RECTANGLE,
                line_color = "#CACACA", line_width = "1pt"):
         """
         Kolor to np #37D02B
