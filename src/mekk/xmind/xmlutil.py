@@ -6,19 +6,22 @@ plików XML wykorzystywanych przez bibliotekę. Z szczególnym uwzględnieniem
 namespaces.
 """
 
-# TODO: dać sobie spokój z tym śmietnikiem. Przejść z find-ów na xpath. A tam:
-#     "./childname"
-# i
-#    //*[local-name()='bar']
-# albo
-#tree.getroot().xpath(
-#     "//xhtml:img",
-#     namespaces={'xhtml':'http://www.w3.org/1999/xhtml'}
-#     )
+# Uwaga:
 #
-# Uwaga: xpath zawsze zwraca listę
+# Przy tworzeniu mapy posługujemy się nie-namespaceowanymi tagami i działa to dobrze.
+# Przy analizie istniejącej, trzeba prefiksować namespace bo parser to gubi i znajduje
+# tylko przy podaniu prefiksu. Bad luck
+
+# TODO: rozważyć
+#    //*[local-name()='bar']
 
 from lxml import etree
+
+class InternalStructureException(Exception):
+    def __init__(self, text):
+        self.text = text
+    def __str__(self):
+        return "Internal map processing error (%s)" % self.text
 
 NS_CONTENT = "urn:xmind:xmap:xmlns:content:2.0"
 NS_STYLE = "urn:xmind:xmap:xmlns:style:2.0"
@@ -48,51 +51,102 @@ SEARCH_NSMAP = {
     "xlink" : NS_XLINK,
 }
 
+########################################################################
+# Ogólne
+########################################################################
+
 def ns_name(ns, what):
     """
     Generuje nazwę zawierającą namespace, np.
 
-    >>> content_name("svg", "x")
+    >>> ns_name("svg", "x")
     "{http://www.w3.org/2000/svg}x"
     """
     return "{%s}%s" % (SEARCH_NSMAP[ns], what)
 
-def _find_child_tag(parent, tag_name, ns, allow_many = False):
+def find_xpath(parent, expression, single = False, required = False):
     """
-    Wyszukanie dziecka bez prefiksu namespaca a także z nim - tak, jak się uda.
-    To pierwsze potrzebne przy budowaniu, to drugie przy parsowaniu.
+    Wyszukuje w parent elementy spełniające wyrażenie xpath expression i zwraca
+    wynik. Dołącza możliwość stosowania skrótów namespace (xm:topic, svg:color itd)
+
+    Jeśli single jest ustawione, wymaga by znaleziono 0 lub 1 wyników i zwraca skalara
+    (None lub wartość), gdy jest wiele wyników zgłasza wyjątek.
+    Bez single zwraca listę.
+
+    Jeśli required jest ustawione, rzuca wyjątek gdy nic nie znajdzie.
     """
-    child = parent.find(ns_name(ns, tag_name))
-    #child = parent.find(tag_name)
-    #if not child:
-    #    child = parent.find("{%s}%s" % (SEARCH_NSMAP[ns], tag_name))
-    if isinstance(child, list):
-        if len(list) == 1:
-            child = child[0]
-        elif len(list) == 0:
-            child = None
-        elif not allow_many:
-            raise Exception("Non-unique child %s under parent %s" % (tag_name, parent))
-    return child
+    r = parent.xpath(expression, namespaces = SEARCH_NSMAP)
+    if required and (not r):
+        raise InternalStructureException("Bad structure. Element %s not found under %s" % (expression, parent))
+    if single:
+        if len(r) > 1:
+            raise InternalStructureException("Non-unique child %s under parent %s" % (tag_name, parent))
+        elif r:
+            r = r[0]
+        else:
+            r = None
+    return r
 
-def find_or_create_tag(parent, tag_name, ns = "xm"):
+############################################################################3
+# Kontekstowe
+############################################################################3
+
+def _optional_ns_fullname(name):
     """
-    If parent contains tag tag_name, returns its obj.
-    Otherwise creates one and returns.
+    Jeśli name zawiera dwukropek, robi na nim ns_name, wpp. nie robi nic.
+    Np:
+         >>> _optional_ns_fullname("tag")
+         "tag"
+         >>> _optional_ns_fullname("svg:width")
+         "{http://www.w3.org/2000/svg}width"
     """
-    child = _find_child_tag(parent, tag_name, ns)
-    if child is None:
-        child = etree.SubElement(parent, tag_name)
-    return child
+    i = name.find(":")
+    if i >= 0:
+        return ns_name(name[0:i], name[i+1:])
+    else:
+        return name
 
-def find_tag(parent, tag_name, ns = "xm"):
-    child = _find_child_tag(parent, tag_name, ns)
-    if child is None:
-        #print etree.tostringlist(parent, pretty_print = True)
-        raise Exception("Tag %(tag_name)s not found under %(parent)s\n" % locals()
-                        + "Known children: " + ", ".join([t.tag for t in list(parent)]))
-    return child
+def _forced_prefix(name, ns = "xm"):
+    """
+    Jeśli nazwa nie zawiera dwukropka, dodaje go
+    """
+    if not name.find(":") >= 0:
+        name = "%s:%s" % (ns, name)
+    return name
 
-def find_tags(parent, tag_name, ns = "xm"):
-    return _find_child_tag(parent, tag_name, ns, True)
 
+class XmlHelper(object):
+    """
+    Klasa wspomagająca tworzenie i wyszukiwanie tagów. Główny cel: zapewnia
+    identyczne API przy chodzeniu po stworzonej mapie i przy analizie sparsowanego
+    XML (które lxml daje w różnych formach).
+    """
+    def __init__(self, is_creating, default = "xm"):
+        self.is_creating = is_creating
+        self.default = default
+
+    def create_child(parent, tag_name, **kwargs):
+        """
+        Tworzenie dziecka. Nazwa tagu to albo nazwa prosta ("subtag") albo prefiksowana ns
+        ("svg:color").
+        """
+        if self.is_creating:
+            return etree.SubElement(parent, _optional_ns_fullname(tag_name), **kwargs)
+        else:
+            return etree.SubElement(parent, _forced_prefix(tag_name), ns_map = SEARCH_NSMAP, **kwargs)
+
+    def find_only_child(parent, tag_name):
+        return find_xpath(parent, "./" + tag_name, True, True)
+
+    def find_children(parent, tag_name):
+        return find_xpath(parent, "./" + tag_name, False, True)
+
+    def find_or_create_child(parent, tag_name):
+        """
+        If parent contains tag tag_name, returns its obj.
+        Otherwise creates one and returns.
+        """
+        child = find_xpath(parent, "./" + tag_name, True, False)
+        if child is None:
+            child = self.create_child(parent, tag_name)  # ns
+        return child

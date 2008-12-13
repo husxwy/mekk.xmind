@@ -7,7 +7,7 @@
 from lxml import etree
 import zipfile
 from id_gen import IdGen, qualify_id
-from xmlutil import ns_name, find_or_create_tag, find_tag, find_tags
+from xmlutil import XmlHelper, ns_name, CONTENT_NSMAP, STYLES_NSMAP
 import logging
 log = logging.getLogger(__name__)
 
@@ -42,74 +42,79 @@ SHAPE_ELLIPSIS = "org.xmind.topicShape.ellipse"
 
 id_gen = IdGen(26, 16)
 
-class Legend(object):
+class DocumentPart(object):
+    def __init__(self, doc):
+        self.doc = doc
+
+class Legend(DocumentPart):
     """
     Legenda mapy czyli spis markerów z opisami
     """
     @classmethod
-    def create(cls, sheet_tag):
+    def create(cls, doc, sheet_tag):
         """
         Tworzy. x_pos i y_pos to pozycje względem centrum mapy
         (ujemne to lewy górny róg, np.)
         """
-        legend_tag = etree.SubElement(sheet_tag, u"legend", visibility = "visible")
-        return Legend(legend_tag)
-    def __init__(self, legend_tag):
+        legend_tag = doc.create_child(sheet_tag, u"legend", visibility = "visible")
+        return Legend(doc, legend_tag)
+    def __init__(self, doc, legend_tag):
+        DocumentPart.__init__(self, doc)
         self.legend_tag = legend_tag
     def set_position(self, x_pos, y_pos):
-        pos = find_or_create_tag(self.legend_tag, "position")
-        pos.set(content_nsmap("svg", "x"), x_pos)
-        pos.set(content_nsmap("svg", "y"), y_pos)
+        pos = self.doc.find_or_create_child(self.legend_tag, "position")
+        pos.set(ns_name("svg", "x"), x_pos)
+        pos.set(ns_name("svg", "y"), y_pos)
     def add_marker(self, marker_id, description):
         """
         Dodaje kolejny marker do legendy. marker_id to albo kodowe
         oznaczenie Xmind (priority-1 itp) albo hasz identyfikacyjny
         własnego markera
         """
-        md = find_or_create_tag(self.legend_tag, "marker-descriptions")
-        etree.SubElement(md, u"marker-description",
-                         attrib={"marker-id": marker_id,
-                                 "description": description})
+        md = self.doc.find_or_create_child(self.legend_tag, "marker-descriptions")
+        self.doc.create_child(md, u"marker-description",
+                              attrib={"marker-id": marker_id,
+                                      "description": description})
 
-class Sheet(object):
+class Sheet(DocumentPart):
     """
     Reprezentacja strony (tj. diagramu)
     """
     @classmethod
     def create(cls, doc, sheet_name, root_topic_name):
-        sheet_tag = etree.SubElement(doc.doc_tag, "sheet",
+        sheet_tag = doc.create_child(doc.doc_tag, "sheet",
                                      id = id_gen.next())
-        sheet = Sheet(sheet_tag, doc)
+        sheet = Sheet(doc, sheet_tag)
         sheet.set_title(sheet_name)
-        topic_tag = etree.SubElement(sheet_tag, u"topic",
+        topic_tag = doc.create_child(sheet_tag, u"topic",
                                      id = id_gen.next())
-        etree.SubElement(topic_tag, u"title").text = root_topic_name
+        doc.create_child(topic_tag, u"title").text = root_topic_name
         return sheet
 
-    def __init__(self, sheet_tag, doc):
+    def __init__(self, doc, sheet_tag):
+        DocumentPart.__init__(self, doc)
         self.sheet_tag = sheet_tag
-        self.doc = doc
 
     def set_title(self, title):
-        find_or_create_tag(self.sheet_tag, "title").text = title
+        self.doc.find_or_create_child(self.sheet_tag, "title").text = title
 
     def get_root_topic(self):
-        return Topic(find_tag(self.sheet_tag, "topic"), self.doc)
+        return Topic(self.doc.find_only_child(self.sheet_tag, "topic"), self.doc)
 
     def get_legend(self):
-        l = self.sheet_tag.find("legend")
+        l = self.doc.find_only_child(self.sheet_tag, u"legend")
         if l:
-            return Legend(l)
+            return Legend(self.doc, l)
         else:
-            return Legend.create(self.sheet_tag)
+            return Legend.create(self.doc, self.sheet_tag)
 
-class Topic(object):
+class Topic(DocumentPart):
     """
     Reprezentacja pojedynczego tematu (czyli wpisu).
     """
-    def __init__(self, topic_tag, doc):
+    def __init__(self, doc, topic_tag):
+        DocumentPart.__init__(self, doc)
         self.topic_tag = topic_tag
-        self.doc = doc
 
     def get_embedded_id(self):
         """
@@ -118,20 +123,20 @@ class Topic(object):
         return qualify_id(self.topic_tag.get("id"))
 
     def _subtopics_tag(self, detached = False):
-        children_tag = find_or_create_tag(self.topic_tag, "children")
+        children_tag = self.doc.find_or_create_child(self.topic_tag, "children")
         mode = detached and "detached" or "attached"
         #topics_tag = children_tag.xpath("topics[@type='%s']" % mode)
         #topics_tag[0]
-        topics_tag = children_tag.find(ns_name("xm", "topics[@type='%s']" % mode))
-        if topics_tag is None:
-            topics_tag = etree.SubElement(children_tag, u"topics", type = mode)
+        topics_tag = children_tag.xpath("topics[@type='%s']" % mode)
+        if not topics_tag:
+            topics_tag = self.create_child(children_tag, u"topics", type = mode)
         return topics_tag
     def add_subtopic(self, subtopic_title, subtopic_emb_id = None, detached = False):
         topics_tag = self._subtopics_tag(detached)
-        subtopic_tag = etree.SubElement(topics_tag, u"topic",
-                                        id = id_gen.next(subtopic_emb_id))
-        etree.SubElement(subtopic_tag, u"title").text = subtopic_title
-        return Topic(subtopic_tag, self.doc)
+        subtopic_tag = self.create_child(topics_tag, u"topic",
+                                         id = id_gen.next(subtopic_emb_id))
+        self.create_child(subtopic_tag, u"title").text = subtopic_title
+        return Topic(self.doc, subtopic_tag)
     def get_subtopics(self, detached = False):
         """
         Generator wyliczający wszystkie pod-elementy. Domyślnie te przypięte, z parametrem
@@ -139,19 +144,19 @@ class Topic(object):
         """
         topics_tag = self._subtopics_tag(detached)
         #for element in topics_tag.iterchildren(tag = ns_name("xm", "topic")):
-        for element in find_tags(topics_tag, "topic"):
-            yield Topic(element, self.doc)
+        for element in self.find_children(topics_tag, "topic"):
+            yield Topic(self.doc, element)
 
     def set_title(self, title):
-        find_or_create_tag(self.topic_tag, "title").text = title
+        self.find_or_create_child(self.topic_tag, "title").text = title
     def get_title(self):
-        return find_or_create_tag(self.topic_tag, ns_name("xm", "title")).text
+        return self.find_or_create_child(self.topic_tag, ns_name("xm", "title")).text
 
     def add_marker(self, marker):
         mr = self.topic_tag.find("marker-refs")
         if mr is None:
-            mr = etree.SubElement(self.topic_tag, "marker-refs")
-        etree.SubElement(mr, "marker-ref", attrib={"marker-id": marker})
+            mr = create_child(self.topic_tag, "marker-refs")
+        create_child(mr, "marker-ref", attrib={"marker-id": marker})
     def get_markers(self):
         mr = self.topic_tag.find("marker-refs")
         if mr:
@@ -182,24 +187,24 @@ class Topic(object):
         Ustawia treść notki. Tekst może być wielowierszowy.
         """
         # TODO: obsługa HTML
-        notes_tag = find_or_create_tag(self.topic_tag, "notes")
-        find_or_create_tag(notes_tag, "plain").text = note_text
-        html_tag = find_or_create_tag(notes_tag, "html")
+        notes_tag = find_or_create_child(self.topic_tag, "notes")
+        find_or_create_child(notes_tag, "plain").text = note_text
+        html_tag = find_or_create_child(notes_tag, "html")
         for l in note_text.split("\n"):
-            etree.SubElement(html_tag, "{http://www.w3.org/1999/xhtml}p").text = l
+            create_child(html_tag, "xhtml:p").text = l
     def get_note(self):
-        notes_tag = find_or_create_tag(self.topic_tag, "notes")
-        return find_or_create_tag(notes_tag, "plain").text
+        notes_tag = find_or_create_child(self.topic_tag, "notes")
+        return find_or_create_child(notes_tag, "plain").text
 
     def set_label(self, label_text):
         """
         Ustawia treść etykiety (widocznej krótkiej notki).
         """
-        labels_tag = find_or_create_tag(self.topic_tag, "labels")
-        find_or_create_tag(labels_tag, "label").text = label_text
+        labels_tag = find_or_create_child(self.topic_tag, "labels")
+        find_or_create_child(labels_tag, "label").text = label_text
     def get_label(self):
-        labels_tag = find_or_create_tag(self.topic_tag, "labels")
-        return find_or_create_tag(labels_tag, "label").text
+        labels_tag = find_or_create_child(self.topic_tag, "labels")
+        return find_or_create_child(labels_tag, "label").text
 
     def set_style(self, style):
         """
@@ -215,23 +220,23 @@ class TopicStyle(object):
         """
         Kolor to np #37D02B
         """
-        styles = find_or_create_tag(doc.styles_tag, "styles")
-        style_tag = etree.SubElement(styles, "style",
-                                     id = id_gen.next(), type="topic")
-        etree.SubElement(style_tag, "topic-properties",
-                         attrib = {
-                                   "line-color" : line_color,
-                                   "line-width" : line_width,
-                                   "shape-class" : shape,
-                                   content_name("svg", "fill") : fill,
-                                   })
+        styles = find_or_create_child(doc.styles_tag, "styles")
+        style_tag = create_child(styles, "style", ns = "st",
+                                 id = id_gen.next(), type="topic")
+        create_child(style_tag, "topic-properties", ns = "st",
+                     attrib = {
+                               "line-color" : line_color,
+                               "line-width" : line_width,
+                               "shape-class" : shape,
+                               content_name("svg", "fill") : fill,
+                               })
         return TopicStyle(style_tag)
     def __init__(self, style_tag):
         self.style_tag = style_tag
     def get_id(self):
         return self.style_tag.get("id")
 
-class XMindDocument(object):
+class XMindDocument(XmlHelper):
     """
     Reprezentacja obiektu dokumentu XMinda. Służy zarówno do tworzenia nowych
     dokumentów, jak do analizy istniejących.
@@ -242,9 +247,10 @@ class XMindDocument(object):
         """
         Tworzy nowy, pusty dokument
         """
+        xml_helper = XmlHelper(True, "xm")
         doc_tag = etree.Element("xmap-content", nsmap = CONTENT_NSMAP, version = "2.0")
         styles_tag = etree.Element("xmap-styles", nsmap = STYLES_NSMAP, version = "2.0")
-        obj = XMindDocument(doc_tag, styles_tag)
+        obj = XMindDocument(xml_helper, doc_tag, styles_tag)
         obj.create_sheet(first_sheet_name, root_topic_name)
         return obj
 
@@ -253,6 +259,7 @@ class XMindDocument(object):
         """
         Otwiera istniejący dokument
         """
+        xml_helper = XmlHelper(False, "xm")
         zf = zipfile.ZipFile(filename, "r")
         doc_tag = None
         styles_tag = None
@@ -281,13 +288,15 @@ class XMindDocument(object):
             logging.debug("Parsed document:\n%s", etree.tostring(doc_tag, pretty_print = True))
             logging.debug("Parsed styles:\n%s", etree.tostring(styles_tag, pretty_print = True))
 
-        return XMindDocument(doc_tag, styles_tag, attachments)
+        return XMindDocument(xml_helper, doc_tag, styles_tag, attachments)
 
-    def __init__(self, doc_tag, styles_tag, attachments = {}):
+    def __init__(self, is_creating, doc_tag, styles_tag, attachments = {}):
         """
         Wspólny konstruktor. Nie używać bezpośrendnio,
         należy korzystać z metod create albo open.
         """
+        XmlHelper.__init__(self, is_creating, "xm")
+        #self.is_creating = is_creating
         self.doc_tag = doc_tag
         self.styles_tag = styles_tag
         self.attachments = attachments
@@ -304,8 +313,8 @@ class XMindDocument(object):
         return TopicStyle.create(self, *args, **kwargs)
 
     def get_first_sheet(self):
-        tag = find_tag(self.doc_tag, "sheet")
-        return Sheet(tag, self)
+        sheets = find_children(self.doc_tag, "sheet")
+        return Sheet(self, tag)
 
     def save(self, zipfilename):
         zipf = zipfile.ZipFile(zipfilename, "w")
