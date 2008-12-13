@@ -46,6 +46,9 @@ def linewiseEnsureEqual(testcase, expected, obtained,
                 obt = obt + "\n" + obtainedlines[i+1]
             if i < expectedsize - 1:
                 exp = exp + "\n" + expectedlines[i+1]
+            if i > 0:
+                obt = obtainedlines[i-1] + "\n" + obt
+                exp = expectedlines[i-1] + "\n" + exp
             testcase.fail(
                 ("Line %d mismatch at pos %d.\nExpected:\n" % (i+1, cpl))
                 + "\nObtained:\n"

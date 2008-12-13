@@ -136,10 +136,8 @@ class Topic(DocumentPart):
                               "type", #self.doc.xpath_name("type"),
                               mode),
             single = True, required = False)
-        if not len(topics_tag):
+        if topics_tag is None:
             topics_tag = self.doc.create_child(children_tag, u"topics", type = mode)
-        else:
-            topics_tag = topics_tag[0]
         return topics_tag
     def add_subtopic(self, subtopic_title, subtopic_emb_id = None, detached = False):
         topics_tag = self._subtopics_tag(detached)

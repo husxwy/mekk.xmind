@@ -152,6 +152,8 @@ class XmlHelper(object):
         else:
             return etree.SubElement(parent, _forced_ns_fullname(tag_name), **kwargs)
 
+    ## TODO: ./ chyba można wywalić
+
     def find_only_child(self, parent, tag_name, required = True):
         if not self.is_creating:
             tag_name = "%s:%s" % (self.default, tag_name)
