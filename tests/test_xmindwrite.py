@@ -10,18 +10,17 @@ class MapCompareBase(object):
     - funkcję generate,
     - atrybut pattern_file
     """
-    def __init__(self, pattern_file):
-        self.pattern = zipfile.ZipFile(self.pattern_file, "r")
     def generate(self):
         """
         Ma zwrócić obiekt document gotowy do zawołania .save
         """
         raise NotImplementedError
-    def setUpClass(self):
+    def setUp(self):
+        self.pattern = zipfile.ZipFile(self.pattern_file, "r")
         fd, self.tfname = tempfile.mkstemp(".zip")
         self.generate().save(self.tfname)
         self.generated = zipfile.ZipFile(self.tfname, "r")
-    def tearDownClass(self):
+    def tearDown(self):
         self.generated.close()
         os.remove(self.tfname)
     def testSameMembers(self):
@@ -40,17 +39,20 @@ class MapCompareBase(object):
     def _sameXml(self, name):
         pat = self.pattern.read(name)
         got = self.generated.read(name)
+        if not pat == got:
+            self.fail("File %s mismatch.\nOriginal:\n%s\nCreated:\n%s" % (name, pat, got))
         self.assertEqual(pat, got)
 
-class SimpleMapTestCase(unittest.TestCase):
+class SimpleMapTestCase(MapCompareBase, unittest.TestCase):
     pattern_file = "simple.xmind"
     def generate(self):
         doc = XMindDocument.create(u"Główny", u"Projekty")
-        root = doc.get_first_sheet().get_root_topic()
+        sheet = doc.get_first_sheet()
+        root = sheet.get_root_topic()
         root.set_note("View the Help sheet for info\nwhat you can do with this map")
 
-        style = xmw.create_topic_style(fill = "#37D02B")
-        #style_sub = xmw.create_topic_style(fill = "CCCCCC")
+        style = doc.create_topic_style(fill = "#37D02B")
+        #style_sub = doc.create_topic_style(fill = "CCCCCC")
 
         for i in range(1,5):
             topic = root.add_subtopic(u"Elemiątko %d" % i)
@@ -58,7 +60,7 @@ class SimpleMapTestCase(unittest.TestCase):
             topic.set_style(style)
             topic.set_link("http://info.onet.pl")
             for j in range(1,3):
-                subtopic = topic.add_subtopic(u"Subelemiątko %d/%d" % (i,jk))
+                subtopic = topic.add_subtopic(u"Subelemiątko %d/%d" % (i,j))
                 subtopic.add_marker("task-start")
                 if j < 2:
                     subtopic.add_marker("other-people")

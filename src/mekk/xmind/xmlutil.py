@@ -125,7 +125,7 @@ class XmlHelper(object):
         self.is_creating = is_creating
         self.default = default
 
-    def create_child(parent, tag_name, **kwargs):
+    def create_child(self, parent, tag_name, **kwargs):
         """
         Tworzenie dziecka. Nazwa tagu to albo nazwa prosta ("subtag") albo prefiksowana ns
         ("svg:color").
@@ -135,13 +135,13 @@ class XmlHelper(object):
         else:
             return etree.SubElement(parent, _forced_prefix(tag_name), ns_map = SEARCH_NSMAP, **kwargs)
 
-    def find_only_child(parent, tag_name):
-        return find_xpath(parent, "./" + tag_name, True, True)
+    def find_only_child(self, parent, tag_name, required = True):
+        return find_xpath(parent, "./" + tag_name, True, required)
 
-    def find_children(parent, tag_name):
-        return find_xpath(parent, "./" + tag_name, False, True)
+    def find_children(self, parent, tag_name, require_non_empty = False):
+        return find_xpath(parent, "./" + tag_name, False, require_non_empty)
 
-    def find_or_create_child(parent, tag_name):
+    def find_or_create_child(self, parent, tag_name):
         """
         If parent contains tag tag_name, returns its obj.
         Otherwise creates one and returns.

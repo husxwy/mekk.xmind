@@ -99,10 +99,10 @@ class Sheet(DocumentPart):
         self.doc.find_or_create_child(self.sheet_tag, "title").text = title
 
     def get_root_topic(self):
-        return Topic(self.doc.find_only_child(self.sheet_tag, "topic"), self.doc)
+        return Topic(self.doc, self.doc.find_only_child(self.sheet_tag, "topic"))
 
     def get_legend(self):
-        l = self.doc.find_only_child(self.sheet_tag, u"legend")
+        l = self.doc.find_only_child(self.sheet_tag, u"legend", required = False)
         if l:
             return Legend(self.doc, l)
         else:
@@ -129,13 +129,15 @@ class Topic(DocumentPart):
         #topics_tag[0]
         topics_tag = children_tag.xpath("topics[@type='%s']" % mode)
         if not topics_tag:
-            topics_tag = self.create_child(children_tag, u"topics", type = mode)
+            topics_tag = self.doc.create_child(children_tag, u"topics", type = mode)
+        else:
+            topics_tag = topics_tag[0]
         return topics_tag
     def add_subtopic(self, subtopic_title, subtopic_emb_id = None, detached = False):
         topics_tag = self._subtopics_tag(detached)
-        subtopic_tag = self.create_child(topics_tag, u"topic",
-                                         id = id_gen.next(subtopic_emb_id))
-        self.create_child(subtopic_tag, u"title").text = subtopic_title
+        subtopic_tag = self.doc.create_child(topics_tag, u"topic",
+                                             id = id_gen.next(subtopic_emb_id))
+        self.doc.create_child(subtopic_tag, u"title").text = subtopic_title
         return Topic(self.doc, subtopic_tag)
     def get_subtopics(self, detached = False):
         """
@@ -148,15 +150,15 @@ class Topic(DocumentPart):
             yield Topic(self.doc, element)
 
     def set_title(self, title):
-        self.find_or_create_child(self.topic_tag, "title").text = title
+        self.doc.find_or_create_child(self.topic_tag, "title").text = title
     def get_title(self):
-        return self.find_or_create_child(self.topic_tag, ns_name("xm", "title")).text
+        return self.doc.find_or_create_child(self.topic_tag, ns_name("xm", "title")).text
 
     def add_marker(self, marker):
         mr = self.topic_tag.find("marker-refs")
         if mr is None:
-            mr = create_child(self.topic_tag, "marker-refs")
-        create_child(mr, "marker-ref", attrib={"marker-id": marker})
+            mr = self.doc.create_child(self.topic_tag, "marker-refs")
+        self.doc.create_child(mr, "marker-ref", attrib={"marker-id": marker})
     def get_markers(self):
         mr = self.topic_tag.find("marker-refs")
         if mr:
@@ -187,24 +189,24 @@ class Topic(DocumentPart):
         Ustawia treść notki. Tekst może być wielowierszowy.
         """
         # TODO: obsługa HTML
-        notes_tag = find_or_create_child(self.topic_tag, "notes")
-        find_or_create_child(notes_tag, "plain").text = note_text
-        html_tag = find_or_create_child(notes_tag, "html")
+        notes_tag = self.doc.find_or_create_child(self.topic_tag, "notes")
+        self.doc.find_or_create_child(notes_tag, "plain").text = note_text
+        html_tag = self.doc.find_or_create_child(notes_tag, "html")
         for l in note_text.split("\n"):
-            create_child(html_tag, "xhtml:p").text = l
+            self.doc.create_child(html_tag, "xhtml:p").text = l
     def get_note(self):
-        notes_tag = find_or_create_child(self.topic_tag, "notes")
-        return find_or_create_child(notes_tag, "plain").text
+        notes_tag = self.doc.find_or_create_child(self.topic_tag, "notes")
+        return self.doc.find_or_create_child(notes_tag, "plain").text
 
     def set_label(self, label_text):
         """
         Ustawia treść etykiety (widocznej krótkiej notki).
         """
-        labels_tag = find_or_create_child(self.topic_tag, "labels")
-        find_or_create_child(labels_tag, "label").text = label_text
+        labels_tag = self.doc.find_or_create_child(self.topic_tag, "labels")
+        self.doc.find_or_create_child(labels_tag, "label").text = label_text
     def get_label(self):
-        labels_tag = find_or_create_child(self.topic_tag, "labels")
-        return find_or_create_child(labels_tag, "label").text
+        labels_tag = self.doc.find_or_create_child(self.topic_tag, "labels")
+        return self.doc.find_or_create_child(labels_tag, "label").text
 
     def set_style(self, style):
         """
@@ -220,16 +222,16 @@ class TopicStyle(object):
         """
         Kolor to np #37D02B
         """
-        styles = find_or_create_child(doc.styles_tag, "styles")
-        style_tag = create_child(styles, "style", ns = "st",
-                                 id = id_gen.next(), type="topic")
-        create_child(style_tag, "topic-properties", ns = "st",
-                     attrib = {
-                               "line-color" : line_color,
-                               "line-width" : line_width,
-                               "shape-class" : shape,
-                               content_name("svg", "fill") : fill,
-                               })
+        styles = doc.find_or_create_child(doc.styles_tag, "styles")
+        style_tag = doc.create_child(styles, "style",
+                                     id = id_gen.next(), type="topic")
+        doc.create_child(style_tag, "topic-properties",
+                         attrib = {
+                             "line-color" : line_color,
+                             "line-width" : line_width,
+                             "shape-class" : shape,
+                             ns_name("svg", "fill") : fill,
+                          })
         return TopicStyle(style_tag)
     def __init__(self, style_tag):
         self.style_tag = style_tag
@@ -313,8 +315,8 @@ class XMindDocument(XmlHelper):
         return TopicStyle.create(self, *args, **kwargs)
 
     def get_first_sheet(self):
-        sheets = find_children(self.doc_tag, "sheet")
-        return Sheet(self, tag)
+        sheet_tags = self.find_children(self.doc_tag, "sheet", require_non_empty = True)
+        return Sheet(self, sheet_tags[0])
 
     def save(self, zipfilename):
         zipf = zipfile.ZipFile(zipfilename, "w")
