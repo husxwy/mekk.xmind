@@ -178,6 +178,9 @@ class Topic(DocumentPart):
         """
         self.topic_tag.set("{http://www.w3.org/1999/xlink}href", url)
 
+    def get_link(self):
+        return self.topic_tag.get("{http://www.w3.org/1999/xlink}href")
+
     def set_attachment(self, data, extension):
         """
         Dodaje załącznik (wpisuje go do pliku i dowiązuje w tym topicu).

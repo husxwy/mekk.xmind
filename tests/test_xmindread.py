@@ -26,13 +26,14 @@ class ReadTestCase(unittest.TestCase):
 
         ## TODO: weryfikacja stylu
         #style = doc.create_topic_style(fill = "#37D02B")
-        from lxml import etree
-        from mekk.xmind.xmlutil import find_xpath
-        print etree.tostring(root.topic_tag, pretty_print = True)
-        print find_xpath(root.topic_tag, "xm:title")
+
+        #from lxml import etree
+        #from mekk.xmind.xmlutil import find_xpath
+        #print etree.tostring(root.topic_tag, pretty_print = True)
+        #print find_xpath(root.topic_tag, "xm:title")
 
         main_topics = list( root.get_subtopics() )
-        self.failUnlessEqual(len(main_topics), 5)
+        self.failUnlessEqual(len(main_topics), 4)
         for no, topic in enumerate(main_topics):
             i = no + 1
             self.failUnlessEqual(topic.get_title(),
@@ -44,14 +45,14 @@ class ReadTestCase(unittest.TestCase):
             self.failUnlessEqual(topic.get_link(), "http://info.onet.pl")
 
             sub_topics = list( topic.get_subtopics() )
-            self.failUnlessEqual(len(sub_topics), 3)
+            self.failUnlessEqual(len(sub_topics), 2)
             for mo, subtopic in enumerate(sub_topics):
                 j = mo + 1
                 self.failUnlessEqual(subtopic.get_title(),
                                      u"Subelemiątko %d/%d" % (i,j))
                 self.failUnlessEqual(subtopic.get_embedded_id(),
                                      u"a%da%d" % (i,j))
-                markers = subtopic.get_markers()
+                markers = list( subtopic.get_markers() )
                 if j < 2:
                     self.failUnlessEqual(markers, ["task-start", "other-people"])
                 else:
