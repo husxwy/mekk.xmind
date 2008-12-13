@@ -16,7 +16,10 @@ class MapCompareBase(object):
         """
         raise NotImplementedError
     def setUp(self):
-        self.pattern = zipfile.ZipFile(self.pattern_file, "r")
+        pf = self.pattern_file
+        if not os.path.isfile(pf):
+            pf = os.path.join("tests", pf)
+        self.pattern = zipfile.ZipFile(pf, "r")
         fd, self.tfname = tempfile.mkstemp(".zip")
         self.generate().save(self.tfname)
         self.generated = zipfile.ZipFile(self.tfname, "r")
