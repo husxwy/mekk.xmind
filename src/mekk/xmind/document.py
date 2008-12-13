@@ -106,7 +106,7 @@ class Sheet(DocumentPart):
 
     def get_legend(self):
         l = self.doc.find_only_child(self.sheet_tag, u"legend", required = False)
-        if l:
+        if l is not None:
             return Legend(self.doc, l)
         else:
             return Legend.create(self.doc, self.sheet_tag)
@@ -151,7 +151,6 @@ class Topic(DocumentPart):
         detached te odpięte.
         """
         topics_tag = self._subtopics_tag(detached)
-        #for element in topics_tag.iterchildren(tag = ns_name("xm", "topic")):
         for element in self.doc.find_children(topics_tag, "topic"):
             yield Topic(self.doc, element)
 
@@ -161,14 +160,15 @@ class Topic(DocumentPart):
         return self.doc.find_or_create_child(self.topic_tag, "title").text
 
     def add_marker(self, marker):
-        mr = self.topic_tag.find("marker-refs")
-        if mr is None:
-            mr = self.doc.create_child(self.topic_tag, "marker-refs")
+        mr = self.doc.find_or_create_child(self.topic_tag, "marker-refs")
+        #mr = self.topic_tag.find("marker-refs")
+        #if mr is None:
+        #    mr = self.doc.create_child(self.topic_tag, "marker-refs")
         self.doc.create_child(mr, "marker-ref", attrib={"marker-id": marker})
     def get_markers(self):
-        mr = self.topic_tag.find("marker-refs")
-        if mr:
-            for element in mr.iterchildren(tag = "marker-ref"):
+        mr = self.doc.find_only_child(self.topic_tag, "marker-refs", required = False)
+        if mr is not None:
+            for element in self.doc.find_children(mr, "marker-ref"):
                 yield element.get("marker-id")
 
     def set_link(self, url):
