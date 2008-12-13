@@ -20,12 +20,13 @@ def generate_simple():
     #style_sub = doc.create_topic_style(fill = "CCCCCC")
 
     for i in range(1,5):
-        topic = root.add_subtopic(u"Elemiątko %d" % i)
+        topic = root.add_subtopic(u"Elemiątko %d" % i, "b%d" % i)
         topic.set_label("%d" % i)
         topic.set_style(style)
         topic.set_link("http://info.onet.pl")
         for j in range(1,3):
-            subtopic = topic.add_subtopic(u"Subelemiątko %d/%d" % (i,j))
+            subtopic = topic.add_subtopic(u"Subelemiątko %d/%d" % (i,j),
+                                          u"a%da%d" % (i,j))
             subtopic.add_marker("task-start")
             if j < 2:
                 subtopic.add_marker("other-people")

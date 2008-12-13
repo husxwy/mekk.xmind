@@ -3,6 +3,76 @@
 import unittest, zipfile, tempfile, os, re
 from sample_maps import *
 
+def linewiseEnsureEqual(testcase, expected, obtained,
+                        ignoreInternalId = False,
+                        ignoreTrailingEmptyLines = False,
+                        showLongerPart = False):
+    """
+    Porównuje czy teksty expected i obtained są identyczne ale błędy raportuje liniowo,
+    tj. podając w którym wierszu nastąpiła rozbieżność.
+    W razie rozbieżności woła fail, inaczej nic nie robi.
+    ignoreDateTimeMismatch powoduje ignorowanie wierszy PGN z datą/czasem
+    """
+    if type(obtained) != type(""):
+        raise InternalError, "Obtained data are not string: " + str(obtained)
+    obtainedlines = obtained.split('\n')
+    expectedlines = expected.split('\n')
+    if ignoreTrailingEmptyLines:
+        while obtainedlines and obtainedlines[-1] == "":
+            obtainedlines.pop()
+        while expectedlines and expectedlines[-1] == "":
+            expectedlines.pop()
+    obtainedsize = len(obtainedlines)
+    expectedsize = len(expectedlines)
+
+        #if not pats == gots:
+        #    self.fail("File %s mismatch.\nOriginal:\n%s\nCreated:\n%s" % (name, pat, got))
+
+    if ignoreInternalId:
+        re_patch_id = re.compile('id="bfbf\d+"')
+
+    for i in range(0, min(obtainedsize, expectedsize)):
+        obt = obtainedlines[i]
+        exp = expectedlines[i]
+        if ignoreInternalId:
+            obt = re_patch_id.sub('id="bfbf1234"', obt)
+            exp = re_patch_id.sub('id="bfbf1234"', exp)
+        if obt == exp:
+            continue
+        commonpfx = os.path.commonprefix([obt, exp])
+        cpl = len(commonpfx)
+        if showLongerPart:
+            if i < obtainedsize - 1:
+                obt = obt + "\n" + obtainedlines[i+1]
+            if i < expectedsize - 1:
+                exp = exp + "\n" + expectedlines[i+1]
+            testcase.fail(
+                ("Line %d mismatch at pos %d.\nExpected:\n" % (i+1, cpl))
+                + "\nObtained:\n"
+                + obt
+                + "\nExpected:\n"
+                + exp)
+        else:
+            if cpl < 20:
+                expdiag = exp[0:cpl+15]
+                obtdiag = obt[0:cpl+15]
+            else:
+                expdiag = "..." + exp[cpl-10:cpl+15]
+                obtdiag = "..." + obt[cpl-10:cpl+15]
+            testcase.fail("Line %d mismatch at pos %d.\nExpected: '%s'\nobtained: '%s'" % (i+1, cpl, expdiag, obtdiag))
+    if obtainedsize > expectedsize:
+        if obtainedsize > expectedsize + 10:
+            replines = obtainedlines[expectedsize:expectedsize+9] + ['...']
+        else:
+            replines = obtainedlines[expectedsize:]
+        testcase.fail("Got %d extra line(s): %s" % (obtainedsize-expectedsize, "\n".join(replines)))
+    elif expectedsize > obtainedsize:
+        if obtainedsize < expectedsize - 10:
+            replines = expectedlines[obtainedsize:obtainedsize+9] + ['...']
+        else:
+            replines = expectedlines[obtainedsize:]
+        testcase.fail("Missing %d line(s): %s" % (expectedsize-obtainedsize, "\n".join(expectedlines[obtainedsize:])))
+
 class MapCompareBase(object):
     """
     Bazowa klasa dla testów porównujących wygenerowaną mapę z wzorcem.
@@ -42,10 +112,9 @@ class MapCompareBase(object):
     def _sameXml(self, name):
         pat = self.pattern.read(name)
         got = self.generated.read(name)
-        pats = re.sub('id="bfbf\d+"', 'id="bfbf0000"', pat)
-        gots = re.sub('id="bfbf\d+"', 'id="bfbf0000"', got)
-        if not pats == gots:
-            self.fail("File %s mismatch.\nOriginal:\n%s\nCreated:\n%s" % (name, pat, got))
+        linewiseEnsureEqual(self, pat, got,
+                            ignoreInternalId = True,
+                            showLongerPart = True)
 
 class SimpleMapTestCase(MapCompareBase, unittest.TestCase):
     pattern_file = "simple.xmind"
