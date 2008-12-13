@@ -77,7 +77,8 @@ def find_xpath(parent, expression, single = False, required = False):
     """
     r = parent.xpath(expression, namespaces = SEARCH_NSMAP)
     if required and (not r):
-        raise InternalStructureException("Bad structure. Element %s not found under %s" % (expression, parent))
+        raise InternalStructureException(
+            "Bad structure. Element %s not found under %s" % (expression, parent))
     if single:
         if len(r) > 1:
             raise InternalStructureException("Non-unique child %s under parent %s" % (tag_name, parent))
@@ -106,6 +107,13 @@ def _optional_ns_fullname(name):
     else:
         return name
 
+def _forced_ns_fullname(name, default = "xm"):
+    i = name.find(":")
+    if i >= 0:
+        return ns_name(name[0:i], name[i+1:])
+    else:
+        return ns_name(default, name)
+
 def _forced_prefix(name, ns = "xm"):
     """
     Jeśli nazwa nie zawiera dwukropka, dodaje go
@@ -125,6 +133,15 @@ class XmlHelper(object):
         self.is_creating = is_creating
         self.default = default
 
+    def xpath_name(self, name):
+        """
+        Zwraca nazwę do użycia w wyrażeniach xpath
+        """
+        if self.is_creating:
+            return name
+        else:
+            return "%s:%s" % (self.default, name)
+
     def create_child(self, parent, tag_name, **kwargs):
         """
         Tworzenie dziecka. Nazwa tagu to albo nazwa prosta ("subtag") albo prefiksowana ns
@@ -133,12 +150,16 @@ class XmlHelper(object):
         if self.is_creating:
             return etree.SubElement(parent, _optional_ns_fullname(tag_name), **kwargs)
         else:
-            return etree.SubElement(parent, _forced_prefix(tag_name), ns_map = SEARCH_NSMAP, **kwargs)
+            return etree.SubElement(parent, _forced_ns_fullname(tag_name), **kwargs)
 
     def find_only_child(self, parent, tag_name, required = True):
+        if not self.is_creating:
+            tag_name = "%s:%s" % (self.default, tag_name)
         return find_xpath(parent, "./" + tag_name, True, required)
 
     def find_children(self, parent, tag_name, require_non_empty = False):
+        if not self.is_creating:
+            tag_name = "%s:%s" % (self.default, tag_name)
         return find_xpath(parent, "./" + tag_name, False, require_non_empty)
 
     def find_or_create_child(self, parent, tag_name):
@@ -146,7 +167,7 @@ class XmlHelper(object):
         If parent contains tag tag_name, returns its obj.
         Otherwise creates one and returns.
         """
-        child = find_xpath(parent, "./" + tag_name, True, False)
+        child = self.find_only_child(parent, tag_name, False)
         if child is None:
             child = self.create_child(parent, tag_name)  # ns
         return child

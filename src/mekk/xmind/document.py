@@ -7,7 +7,7 @@
 from lxml import etree
 import zipfile
 from id_gen import IdGen, qualify_id
-from xmlutil import XmlHelper, ns_name, CONTENT_NSMAP, STYLES_NSMAP
+from xmlutil import XmlHelper, ns_name, CONTENT_NSMAP, STYLES_NSMAP, find_xpath
 import logging
 log = logging.getLogger(__name__)
 
@@ -98,6 +98,9 @@ class Sheet(DocumentPart):
     def set_title(self, title):
         self.doc.find_or_create_child(self.sheet_tag, "title").text = title
 
+    def get_title(self):
+        return self.doc.find_only_child(self.sheet_tag, "title").text
+
     def get_root_topic(self):
         return Topic(self.doc, self.doc.find_only_child(self.sheet_tag, "topic"))
 
@@ -127,8 +130,13 @@ class Topic(DocumentPart):
         mode = detached and "detached" or "attached"
         #topics_tag = children_tag.xpath("topics[@type='%s']" % mode)
         #topics_tag[0]
-        topics_tag = children_tag.xpath("topics[@type='%s']" % mode)
-        if not topics_tag:
+        topics_tag = find_xpath(
+            children_tag,
+            "%s[@%s='%s']" % (self.doc.xpath_name("topics"),
+                              "type", #self.doc.xpath_name("type"),
+                              mode),
+            single = True, required = False)
+        if not len(topics_tag):
             topics_tag = self.doc.create_child(children_tag, u"topics", type = mode)
         else:
             topics_tag = topics_tag[0]
@@ -146,13 +154,13 @@ class Topic(DocumentPart):
         """
         topics_tag = self._subtopics_tag(detached)
         #for element in topics_tag.iterchildren(tag = ns_name("xm", "topic")):
-        for element in self.find_children(topics_tag, "topic"):
+        for element in self.doc.find_children(topics_tag, "topic"):
             yield Topic(self.doc, element)
 
     def set_title(self, title):
         self.doc.find_or_create_child(self.topic_tag, "title").text = title
     def get_title(self):
-        return self.doc.find_or_create_child(self.topic_tag, ns_name("xm", "title")).text
+        return self.doc.find_or_create_child(self.topic_tag, "title").text
 
     def add_marker(self, marker):
         mr = self.topic_tag.find("marker-refs")
@@ -249,10 +257,9 @@ class XMindDocument(XmlHelper):
         """
         Tworzy nowy, pusty dokument
         """
-        xml_helper = XmlHelper(True, "xm")
         doc_tag = etree.Element("xmap-content", nsmap = CONTENT_NSMAP, version = "2.0")
         styles_tag = etree.Element("xmap-styles", nsmap = STYLES_NSMAP, version = "2.0")
-        obj = XMindDocument(xml_helper, doc_tag, styles_tag)
+        obj = XMindDocument(True, doc_tag, styles_tag)
         obj.create_sheet(first_sheet_name, root_topic_name)
         return obj
 
@@ -261,7 +268,6 @@ class XMindDocument(XmlHelper):
         """
         Otwiera istniejący dokument
         """
-        xml_helper = XmlHelper(False, "xm")
         zf = zipfile.ZipFile(filename, "r")
         doc_tag = None
         styles_tag = None
@@ -290,7 +296,7 @@ class XMindDocument(XmlHelper):
             logging.debug("Parsed document:\n%s", etree.tostring(doc_tag, pretty_print = True))
             logging.debug("Parsed styles:\n%s", etree.tostring(styles_tag, pretty_print = True))
 
-        return XMindDocument(xml_helper, doc_tag, styles_tag, attachments)
+        return XMindDocument(False, doc_tag, styles_tag, attachments)
 
     def __init__(self, is_creating, doc_tag, styles_tag, attachments = {}):
         """
