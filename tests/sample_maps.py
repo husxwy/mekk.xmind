@@ -35,3 +35,6 @@ def generate_simple():
     legend.add_marker("other-people", u"Do widzenia")
 
     return doc
+
+if __name__ == "__main__":
+    generate_simple().save("simple.xmind")
