@@ -46,7 +46,6 @@ class MapCompareBase(object):
         gots = re.sub('id="bfbf\d+"', 'id="bfbf0000"', got)
         if not pats == gots:
             self.fail("File %s mismatch.\nOriginal:\n%s\nCreated:\n%s" % (name, pat, got))
-        self.assertEqual(pat, got)
 
 class SimpleMapTestCase(MapCompareBase, unittest.TestCase):
     pattern_file = "simple.xmind"
