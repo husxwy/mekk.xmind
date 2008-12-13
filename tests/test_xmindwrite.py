@@ -42,7 +42,9 @@ class MapCompareBase(object):
     def _sameXml(self, name):
         pat = self.pattern.read(name)
         got = self.generated.read(name)
-        if not pat == got:
+        pats = re.sub('id="bfbf\d+"', 'id="bfbf0000"', pat)
+        gots = re.sub('id="bfbf\d+"', 'id="bfbf0000"', got)
+        if not pats == gots:
             self.fail("File %s mismatch.\nOriginal:\n%s\nCreated:\n%s" % (name, pat, got))
         self.assertEqual(pat, got)
 
