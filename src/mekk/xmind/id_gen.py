@@ -28,6 +28,12 @@ def qualify_id(id, embedded_length = EMBEDDED_LENGTH):
     else:
         return None
 
+def unique_id(id, embedded_length = EMBEDDED_LENGTH):
+    if id.startswith(PFX_EMBEDDED) or id.startswith(PFX_OTHER):
+        return id[-embedded_length:].lstrip("0")
+    else:
+        return id.lstrip("0")
+
 class IdGen(object):
     """
     Generator identyfikatorów uwzględniający możliwość

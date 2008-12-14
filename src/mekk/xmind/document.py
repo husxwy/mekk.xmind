@@ -6,7 +6,7 @@
 # xml.etree działa ale by szukać z [@x='a'] potrzeba wersji 1.3
 from lxml import etree
 import zipfile
-from id_gen import IdGen, qualify_id
+from id_gen import IdGen, qualify_id, unique_id
 from xmlutil import XmlHelper, ns_name, CONTENT_NSMAP, STYLES_NSMAP, find_xpath
 import logging
 log = logging.getLogger(__name__)
@@ -124,6 +124,12 @@ class Topic(DocumentPart):
         Jeśli projekt ma zakopane id, to je zwraca.
         """
         return qualify_id(self.topic_tag.get("id"))
+
+    def get_correlation_id(self):
+        """
+        Zwraca unikalny identyfikator topicu (w ramach tej mapy)
+        """
+        return unique_id(self.topic_tag.get("id"))
 
     def _subtopics_tag(self, detached = False):
         children_tag = self.doc.find_or_create_child(self.topic_tag, "children")
