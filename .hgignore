@@ -1,0 +1,5 @@
+syntax: regexp
+
+~$
+semantic\.cache$
+\.py[co]$
