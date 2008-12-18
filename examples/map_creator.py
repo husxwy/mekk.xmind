@@ -20,6 +20,12 @@ t.add_subtopic(u"Trzeci i półtora")
 root_topic.add_subtopic(u"Wolnogłówny", detached = True)
 t.add_subtopic(u"Wolnopodtrzeci", detached = True)
 t.add_marker("flag-red")
+root_topic.add_subtopic(u"Linkowany").set_link("http://mekk.waw.pl")
+root_topic.add_subtopic(u"Załączony").set_attachment(
+    file("map_creator.py").read(), ".txt")
+root_topic.add_subtopic(u"Z notką").set_note(u"""Ala ma kota
+i zażółca gęślą jaźń
+od wieczora do rana.""")
 
 xmind.save(OUTPUT)
 
