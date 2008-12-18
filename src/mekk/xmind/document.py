@@ -331,6 +331,7 @@ class XMindDocument(XmlHelper):
     def get_first_sheet(self):
         sheet_tags = self.find_children(self.doc_tag, "sheet", require_non_empty = True)
         return Sheet(self, sheet_tags[0])
+
     def embed_markers(self, xmp_file_name):
         """
         Załącza wewnątrz pliku xmnd zbiór scustomizowanych
@@ -361,10 +362,18 @@ class XMindDocument(XmlHelper):
                 ('<file-entry full-path="%s" media-type=""/>' % path) + "\n</manifest>")
         if self.embed_xmp:
             xmpf = zipfile.ZipFile(self.embed_xmp, "r")
-            for name in xmpf.filelist():
+            manifest_content = manifest_content.replace(
+                "</manifest>",
+                '<file-entry full-path="markers/" media-type=""/>' + "\n</manifest>")
+            for name in xmpf.namelist():
+                path = "markers/" + name,
                 self._add_to_zip(
-                    zipf, "markers/" + name,
-                    xmpf.hmmm)
+                    zipf, path,
+                    xmpf.read(name))
+                manifest_content = manifest_content.replace(
+                    "</manifest>",
+                    ('<file-entry full-path="%s" media-type=""/>' % path) + "\n</manifest>")
+
         self._add_to_zip(zipf, "META-INF/manifest.xml", manifest_content)
 
     def pretty_print(self):
