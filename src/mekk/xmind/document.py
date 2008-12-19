@@ -293,6 +293,8 @@ class XMindDocument(XmlHelper):
                 short = name[len(ATTACHMENTS_DIR):]
                 log.debug("Found attachment %s" % short)
                 attachments[short] = zf.read(name)
+            elif name.startswith("markers/"):
+                pass
             else:
                 log.warn("Unknown xmind file member: %s" % name)
 
