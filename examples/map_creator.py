@@ -27,7 +27,7 @@ root_topic.add_subtopic(u"Z notką").set_note(u"""Ala ma kota
 i zażółca gęślą jaźń
 od wieczora do rana.""")
 
-CODE = "64vu7ealdv4nt55k6qebrijrpd"
+CODE = "40g6170ftul9bo17p1r31nqk2a"
 XMP = "../../py_mekk_nozbe2xmind/src/mekk/nozbe2xmind/NozbeIconsMarkerPackage.xmp"
 root_topic.add_subtopic(u"Z moim markerem").add_marker(CODE)
 
