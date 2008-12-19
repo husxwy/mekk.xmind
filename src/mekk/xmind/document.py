@@ -366,7 +366,7 @@ class XMindDocument(XmlHelper):
                 "</manifest>",
                 '<file-entry full-path="markers/" media-type=""/>' + "\n</manifest>")
             for name in xmpf.namelist():
-                path = "markers/" + name,
+                path = "markers/" + name
                 self._add_to_zip(
                     zipf, path,
                     xmpf.read(name))
