@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# (c) 2008, Marcin Kasperski
 
 """
 Zbiór funkcji generujących pliki służące do testów. Funkcje są normalnie używane

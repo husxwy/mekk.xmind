@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# (c) 2008, Marcin Kasperski
 
 """
 Zestaw stałych oraz funkcji użytkowych ułatwiających generowanie i przeszukiwanie

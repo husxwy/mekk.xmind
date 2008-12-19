@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 # -*- coding: utf-8 -*-
+# (c) 2008, Marcin Kasperski
 #
 # Skrypt budujący dystrybucję:
 # - koryguje numer wersji

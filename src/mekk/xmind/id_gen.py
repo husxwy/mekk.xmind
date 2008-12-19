@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# (c) 2008, Marcin Kasperski
 
 PFX_EMBEDDED = "afaf"
 PFX_OTHER = "bfbf"

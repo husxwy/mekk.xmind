@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# (c) 2008, Marcin Kasperski
 #try:
 #    from lxml import etree
 #except ImportError:

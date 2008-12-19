@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# (c) 2008, Marcin Kasperski
 
 import unittest, zipfile, tempfile, os, re
 from sample_maps import *
