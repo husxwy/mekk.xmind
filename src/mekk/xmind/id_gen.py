@@ -3,20 +3,9 @@
 
 PFX_EMBEDDED = "afaf"
 PFX_OTHER = "bfbf"
-EMBEDDED_LENGTH = 16
+PFX_LEN = 4
 
-def simple_id_gen(prefix, length = 26):
-    """
-    Prosty generator identyfikatorów z zadanym prefiksem i o zadanej długości.
-    """
-    suffix_len = length - len(prefix)
-    count = 0
-    while True:
-        count += 1
-        no = "%s%0*d" % (prefix, suffix_len, count)
-        if len(no) > length:
-            break
-        yield no
+EMBEDDED_LENGTH = 16
 
 def qualify_id(id, embedded_length = EMBEDDED_LENGTH):
     """
@@ -25,15 +14,16 @@ def qualify_id(id, embedded_length = EMBEDDED_LENGTH):
     zwraca None.
     """
     if id.startswith(PFX_EMBEDDED):
-        return id[-embedded_length:].lstrip("0")
+        ln = int(id[PFX_LEN:PFX_LEN+2])
+        return id[-ln:]
     else:
         return None
 
 def unique_id(id, embedded_length = EMBEDDED_LENGTH):
-    if id.startswith(PFX_EMBEDDED) or id.startswith(PFX_OTHER):
-        return id[-embedded_length:].lstrip("0")
-    else:
-        return id.lstrip("0")
+    n = qualify_id(id, embedded_length)
+    if n:
+        return n
+    return id.lstrip("0")
 
 class IdGen(object):
     """
@@ -43,25 +33,43 @@ class IdGen(object):
     def __init__(self,
                  length = 26,
                  embedded_length = EMBEDDED_LENGTH):
-        self.simplegen = simple_id_gen(PFX_OTHER, length)
-        self.embgen = simple_id_gen(PFX_EMBEDDED, length - embedded_length)
+        self.counter = 0
+        self.length = length
         self.embedded_length = embedded_length
-    def __del__(self):
-        self.simplegen.close()
-        self.embgen.close()
+        
     def next(self, embedded = None):
+        self.counter += 1
         if embedded is None:
-            return self.simplegen.next()
+            suffix_len = self.length - PFX_LEN
+            no = "%s%0*d" % (PFX_OTHER, suffix_len, self.counter)
+            if len(no) > self.length:
+                raise Exception("IdGen overflow")
+            return no
         else:
             semb = str(embedded)
-            return self.embgen.next() + ("0" * (self.embedded_length - len(semb))) + semb
+            lensemb = len(semb)
+            
+            # 4 znaki prefiksu
+            # 2 znaki długości zanurzonego (maks 16)
+            # <=4  countera (ale olewam i rotuję)
+            # <=16 zanurzonego
+            r = "%s%02d%04d" % (PFX_EMBEDDED, lensemb,
+                                self.counter % 10000)
+            rest = self.length - PFX_LEN - 6
+            if lensemb <= rest:
+                r += "0" * (rest-lensemb)
+            else:
+                raise Exception("Embedded too long (max %d)" % self.embedded_legth)
+            r += semb
+            if len(r) > self.length:
+                raise Exception("EmbIdGen overflow")
+
+            return r
 
 if __name__ == "__main__":
-    t = simple_id_gen(length = 16, prefix = "ABCD")
-    for x in range(0,15):
-        print t.next()
-    t.close()
     e = IdGen()
     for x in range(1,5):
         print e.next()
         print e.next(x * x * x)
+        print e.next("ABCDABCDABCDABCD")        
+        print e.next("ABCDABCDABCDABCD")
