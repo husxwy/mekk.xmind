@@ -13,6 +13,7 @@ use FindBin;
 use File::Spec::Functions;
 use File::Copy;
 use Tie::File;
+use File::Path;
 
 my $MODULE_NAME = "mekk.xmind";
 my $PYTHON_VERSION = "py2.5";
@@ -108,12 +109,20 @@ if ($what ne 'devel') {
         }
     }
 
-    system("hg commit -m 'version patch $version'") and die $!;
-    system("hg tag $version") and die $!;
+    unless( $what eq 'rebuild' ) {
+        system("hg commit -m 'version patch $version'") and die $!;
+        system("hg tag $version") and die $!;
+    }
 }
 else {
     $version = 'devel';
 }
+
+#################################################################
+# Sprzątanie
+#################################################################
+
+rmtree('build');
 
 #################################################################
 # Uruchomienie setupu
