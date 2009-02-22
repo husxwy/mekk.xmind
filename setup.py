@@ -29,7 +29,7 @@ setup(name='mekk.xmind',
       include_package_data = True,
       zip_safe=False,
       install_requires=[
-          'lxml',
+          'lxml >= 2.1.1',
       ],
 #      entry_points="""
 #      [babel.extractors]

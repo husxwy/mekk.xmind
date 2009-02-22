@@ -146,7 +146,7 @@ unless( -f $EGG_FILE ) {
     die "$EGG_FILE not found. Setup failed?\n";
 }
 
-system("scp $EGG_FILE linode.mekk.waw.pl:www_download/nozbe2xmind/");
+system("scp $EGG_FILE linode.mekk.waw.pl:www_download/python/");
 
-print "Uploaded http://mekk.waw.pl/download/nozbe2xmind/$EGG_NAME\n";
+print "Uploaded http://mekk.waw.pl/download/python/$EGG_NAME\n";
 
