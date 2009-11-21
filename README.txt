@@ -6,5 +6,5 @@ making it possible to:
 - analyze their content
 
 Mercurial repository:
-<http://TODO:>
+<http://bitbucket.org/Mekk/mekk.xmind>
 
