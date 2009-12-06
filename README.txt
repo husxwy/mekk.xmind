@@ -36,8 +36,7 @@ Creating mind-map::
     root_topic.add_subtopic(u"Link example").set_link("http://mekk.waw.pl")
     root_topic.add_subtopic(u"Attachment example").set_attachment(
         file("map_creator.py").read(), ".txt")
-    root_topic.add_subtopic(u"With note").set_note(u"""This is just some
-dummy note.""")
+    root_topic.add_subtopic(u"With note").set_note(u"""This is just some dummy note.""")
     
     MARKER_CODE = "40g6170ftul9bo17p1r31nqk2a"
     XMP = "../../py_mekk_nozbe2xmind/src/mekk/nozbe2xmind/NozbeIconsMarkerPackage.xmp"
