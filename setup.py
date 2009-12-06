@@ -5,6 +5,7 @@ from setuptools import setup, find_packages
 
 version = '0.3.1'
 long_description = open("README.txt").read()
+
 classifiers = [
     "Programming Language :: Python",
     "Intended Audience :: Developers",
@@ -20,7 +21,7 @@ setup(name='mekk.xmind',
       keywords='xmind',
       author='Marcin Kasperski',
       author_email='Marcin.Kasperski@mekk.waw.pl',
-      url='http://mekk.waw.pl/python/xmind',
+      url='http://bitbucket.org/Mekk/mekk.xmind/',
       license='Artistic',
       package_dir={'':'src'},
       packages=find_packages('src', exclude=['ez_setup', 'examples', 'tests']),
