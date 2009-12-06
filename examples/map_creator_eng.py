@@ -5,7 +5,7 @@ from mekk.xmind import XMindDocument
 
 OUTPUT = "test.xmind"
 
-xmind = XMindDocument.create(u"First sheet title", u"Second sheet title")
+xmind = XMindDocument.create(u"First sheet title", u"Root subject")
 first_sheet = xmind.get_first_sheet()
 root_topic = first_sheet.get_root_topic()
 

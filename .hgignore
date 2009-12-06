@@ -6,3 +6,4 @@ semantic\.cache$
 ^src/mekk\.xmind\.egg-info
 ^build/
 ^dist/
+^examples/test.xmind
