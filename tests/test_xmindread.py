@@ -61,5 +61,5 @@ class ReadTestCase(unittest.TestCase):
 
         legend = sheet.get_legend()
         # TODO: test czytania legendy
-        #legend.add_marker("task-start", u"Dzień dobry")
+        legend.add_marker("task-start", u"Dzień dobry")
         #legend.add_marker("other-people", u"Do widzenia")

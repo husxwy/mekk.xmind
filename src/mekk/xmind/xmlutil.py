@@ -82,7 +82,7 @@ def find_xpath(parent, expression, single = False, required = False):
             "Bad structure. Element %s not found under %s" % (expression, parent))
     if single:
         if len(r) > 1:
-            raise InternalStructureException("Non-unique child %s under parent %s" % (tag_name, parent))
+            raise InternalStructureException("Non-unique child %s under parent %s" % (expression, parent))
         elif r:
             r = r[0]
         else:

@@ -6,7 +6,7 @@ import zipfile
 import tempfile
 import os
 import re
-from sample_maps import *
+from sample_maps import generate_simple
 
 
 def linewiseEnsureEqual(testcase, expected, obtained,
@@ -20,7 +20,7 @@ def linewiseEnsureEqual(testcase, expected, obtained,
     ignoreDateTimeMismatch powoduje ignorowanie wierszy PGN z datą/czasem
     """
     if type(obtained) != type(""):
-        raise InternalError, "Obtained data are not string: " + str(obtained)
+        raise AssertionError("Obtained data are not string: " + str(obtained))
     obtainedlines = obtained.split('\n')
     expectedlines = expected.split('\n')
     if ignoreTrailingEmptyLines:
