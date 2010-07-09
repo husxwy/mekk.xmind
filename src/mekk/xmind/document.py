@@ -532,8 +532,13 @@ class XMindDocument(XmlHelper):
             else:
                 log.warn("Unknown xmind file member: %s" % name)
 
-        if (doc_tag is None) or (styles_tag is None):
-            raise Exception("Invalid xmind file: %s" % filename)
+        if doc_tag is None:
+            raise Exception("Invalid xmind file: %s (missing content block)" % filename)
+        if styles_tag is None:
+            #  XMind 3.1.1 happens to miss this tag
+            #raise Exception("Invalid xmind file: %s (missing style block)" % filename)
+            styles_tag = etree.Element(
+                "xmap-styles", nsmap = STYLES_NSMAP, version = "2.0")
 
         if DUMP_PARSED_DATA:
             logging.debug("Parsed document:\n%s",
