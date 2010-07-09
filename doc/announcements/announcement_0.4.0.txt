@@ -4,13 +4,13 @@ mekk.xmind 0.4.0 has just been released
 What it is?
 ===========
 
-``mekk.xmind`` is a pure-Python handler for XMind mind-map files.
+mekk.xmind is a pure-Python handler for XMind mind-map files.
 It can be used to:
 
 - generate XMind mind-maps from scratch (for example to visualize
   some data as a mind-map),
-- modify existing ``.xmind`` files,
-- parse existing ``.xmind`` files and analyze their content.
+- modify existing .xmind files,
+- parse existing .xmind files and analyze their content.
 
 Mind-map creation example::
 
