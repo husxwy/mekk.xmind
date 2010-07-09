@@ -3,7 +3,7 @@
 
 from mekk.xmind import XMindDocument
 
-OUTPUT = "test.xmind"
+OUTPUT = "test_eng.xmind"
 
 xmind = XMindDocument.create(u"First sheet title", u"Root subject")
 first_sheet = xmind.get_first_sheet()
