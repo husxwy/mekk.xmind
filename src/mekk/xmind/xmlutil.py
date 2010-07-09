@@ -12,13 +12,17 @@ XMind XML.
 # and they work. Unforutnately while parsing it is necessary
 # to prefix tags searched for. Bad luck.
 
-# TODO: think about
-#    //*[local-name()='bar']
+# TODO: think about    //*[local-name()='bar']
 
 from lxml import etree
 
 class InternalStructureException(Exception):
+    """
+    Exception thrown in case of missing children, unexpected
+    children and other internal XML structure errors.
+    """
     def __init__(self, text):
+        Exception.__init__(self)
         self.text = text
     def __str__(self):
         return "Internal map processing error (%s)" % self.text
@@ -55,14 +59,14 @@ SEARCH_NSMAP = {
 # Ogólne
 ########################################################################
 
-def ns_name(ns, what):
+def ns_name(ns_shortcut, what):
     """
     Make properly namespace-prefixed tag name, for example:
 
     >>> ns_name("svg", "x")
     "{http://www.w3.org/2000/svg}x"
     """
-    return "{%s}%s" % (SEARCH_NSMAP[ns], what)
+    return "{%s}%s" % (SEARCH_NSMAP[ns_shortcut], what)
 
 def find_xpath(parent, expression, single = False, required = False):
     """
@@ -75,18 +79,21 @@ def find_xpath(parent, expression, single = False, required = False):
 
     If required is set, raises InternalStructureException if nothing is found.
     """
-    r = parent.xpath(expression, namespaces = SEARCH_NSMAP)
-    if required and (not r):
+    found_items = parent.xpath(expression, namespaces = SEARCH_NSMAP)
+    if required and (not found_items):
         raise InternalStructureException(
-            "Bad structure. Element %s not found under %s" % (expression, parent))
+            "Bad structure. Element %s not found under %s" % (
+                expression, parent))
     if single:
-        if len(r) > 1:
-            raise InternalStructureException("Non-unique child %s under parent %s" % (expression, parent))
-        elif r:
-            r = r[0]
+        if len(found_items) > 1:
+            raise InternalStructureException(
+                "Non-unique child %s under parent %s" % (
+                    expression, parent))
+        elif found_items:
+            found_items = found_items[0]
         else:
-            r = None
-    return r
+            found_items = None
+    return found_items
 
 ############################################################################3
 # Kontekstowe
@@ -109,18 +116,24 @@ def _optional_ns_fullname(name):
         return name
 
 def _forced_ns_fullname(name, default = "xm"):
+    """
+    Ensures name contains full (long) namespace prefix. Handles
+    properly non-prefixed names (to which default namespace is applied),
+    shortcut-prefixed names (which are replaced with appropriate long names)
+    and fully prefixed names (left as-is).
+    """
     i = name.find(":")
     if i >= 0:
         return ns_name(name[0:i], name[i+1:])
     else:
         return ns_name(default, name)
 
-def _forced_prefix(name, ns = "xm"):
+def _forced_prefix(name, ns_shortcut = "xm"):
     """
     Adds short (colon) prefix if missing.
     """
     if not name.find(":") >= 0:
-        name = "%s:%s" % (ns, name)
+        name = "%s:%s" % (ns_shortcut, name)
     return name
 
 
