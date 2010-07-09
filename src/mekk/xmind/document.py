@@ -49,7 +49,7 @@ SHAPE_RECTANGLE = "org.xmind.topicShape.rectangle"
 SHAPE_ROUND_RECTANGLE = "org.xmind.topicShape.roundedRect"
 SHAPE_ELLIPSIS = "org.xmind.topicShape.ellipse"
 
-_id_gen = IdGen(26, 16)
+_id_gen = IdGen(26)
 
 class DocumentPart(object):
     """
