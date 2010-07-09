@@ -1,19 +1,18 @@
 # -*- coding: utf-8 -*-
-# (c) 2008, Marcin Kasperski
+# (c) 2008-2010, Marcin Kasperski
 
 """
-Zestaw stałych oraz funkcji użytkowych ułatwiających generowanie i przeszukiwanie
-plików XML wykorzystywanych przez bibliotekę. Z szczególnym uwzględnieniem
-namespaces.
+Set of helpers and constants used while generating and parsing
+XMind XML.
 """
 
-# Uwaga:
+# Note:
 #
-# Przy tworzeniu mapy posługujemy się nie-namespaceowanymi tagami i działa to dobrze.
-# Przy analizie istniejącej, trzeba prefiksować namespace bo parser to gubi i znajduje
-# tylko przy podaniu prefiksu. Bad luck
+# While creating map non-prefixed (non-namespaced) tags are used
+# and they work. Unforutnately while parsing it is necessary
+# to prefix tags searched for. Bad luck.
 
-# TODO: rozważyć
+# TODO: think about
 #    //*[local-name()='bar']
 
 from lxml import etree
@@ -58,7 +57,7 @@ SEARCH_NSMAP = {
 
 def ns_name(ns, what):
     """
-    Generuje nazwę zawierającą namespace, np.
+    Make properly namespace-prefixed tag name, for example:
 
     >>> ns_name("svg", "x")
     "{http://www.w3.org/2000/svg}x"
@@ -67,14 +66,14 @@ def ns_name(ns, what):
 
 def find_xpath(parent, expression, single = False, required = False):
     """
-    Wyszukuje w parent elementy spełniające wyrażenie xpath expression i zwraca
-    wynik. Dołącza możliwość stosowania skrótów namespace (xm:topic, svg:color itd)
+    Look inside parent for elements satisfying XPath expression, returns
+    the results. Handles namespace shortcuts (xm:topic, svg:color etc)
 
-    Jeśli single jest ustawione, wymaga by znaleziono 0 lub 1 wyników i zwraca skalara
-    (None lub wartość), gdy jest wiele wyników zgłasza wyjątek.
-    Bez single zwraca listę.
+    If single is set, expects no more than one result (otherwise raises
+    InternalStructureException), and returns scalar value (or None if nothing is found).
+    With single not set, returns list.
 
-    Jeśli required jest ustawione, rzuca wyjątek gdy nic nie znajdzie.
+    If required is set, raises InternalStructureException if nothing is found.
     """
     r = parent.xpath(expression, namespaces = SEARCH_NSMAP)
     if required and (not r):
@@ -95,8 +94,9 @@ def find_xpath(parent, expression, single = False, required = False):
 
 def _optional_ns_fullname(name):
     """
-    Jeśli name zawiera dwukropek, robi na nim ns_name, wpp. nie robi nic.
-    Np:
+    If name contains colon, performs ns_name on it, otherwise returns
+    unmodified.
+
          >>> _optional_ns_fullname("tag")
          "tag"
          >>> _optional_ns_fullname("svg:width")
@@ -117,7 +117,7 @@ def _forced_ns_fullname(name, default = "xm"):
 
 def _forced_prefix(name, ns = "xm"):
     """
-    Jeśli nazwa nie zawiera dwukropka, dodaje go
+    Adds short (colon) prefix if missing.
     """
     if not name.find(":") >= 0:
         name = "%s:%s" % (ns, name)
@@ -126,9 +126,10 @@ def _forced_prefix(name, ns = "xm"):
 
 class XmlHelper(object):
     """
-    Klasa wspomagająca tworzenie i wyszukiwanie tagów. Główny cel: zapewnia
-    identyczne API przy chodzeniu po stworzonej mapie i przy analizie sparsowanego
-    XML (które lxml daje w różnych formach).
+    Map navigation helper. Written to provide identical API 
+    for navigating just-created map and parsed map (which
+    are represented a bit differently by lxml, thanks to
+    namespace prefixes)
     """
     def __init__(self, is_creating, default = "xm"):
         self.is_creating = is_creating
@@ -136,7 +137,7 @@ class XmlHelper(object):
 
     def xpath_name(self, name):
         """
-        Zwraca nazwę do użycia w wyrażeniach xpath
+        Adapts name so it can be used in XPath expressions.
         """
         if self.is_creating:
             return name
@@ -145,22 +146,30 @@ class XmlHelper(object):
 
     def create_child(self, parent, tag_name, **kwargs):
         """
-        Tworzenie dziecka. Nazwa tagu to albo nazwa prosta ("subtag") albo prefiksowana ns
-        ("svg:color").
+        Create child of given XML element. tag_name can be simple
+        ("subtag") or colon-prefixed ("svg:color").
         """
         if self.is_creating:
-            return etree.SubElement(parent, _optional_ns_fullname(tag_name), **kwargs)
+            return etree.SubElement(
+                parent, _optional_ns_fullname(tag_name), **kwargs)
         else:
-            return etree.SubElement(parent, _forced_ns_fullname(tag_name), **kwargs)
+            return etree.SubElement(
+                parent, _forced_ns_fullname(tag_name), **kwargs)
 
-    ## TODO: ./ chyba można wywalić
+    ## TODO: ./ belo is probably not necessary
 
     def find_only_child(self, parent, tag_name, required = True):
+        """
+        Find child of given name, expecting it will be unique
+        """
         if not self.is_creating:
             tag_name = "%s:%s" % (self.default, tag_name)
         return find_xpath(parent, "./" + tag_name, True, required)
 
     def find_children(self, parent, tag_name, require_non_empty = False):
+        """
+        Find all children of given name
+        """
         if not self.is_creating:
             tag_name = "%s:%s" % (self.default, tag_name)
         return find_xpath(parent, "./" + tag_name, False, require_non_empty)

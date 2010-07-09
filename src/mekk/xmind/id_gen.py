@@ -7,11 +7,14 @@ PFX_LEN = 4
 
 EMBEDDED_LENGTH = 16
 
+"""
+Embedded-id trick handling. See Topic.get_embedded_id for description
+"""
+
 def qualify_id(id, embedded_length = EMBEDDED_LENGTH):
     """
-    Jeśli w podanym identyfikatorze jest zakopany ukryty
-    identyfikator, zwraca go. W przeciwnym wypadku
-    zwraca None.
+    Check given id for embedded id. Returns it if present,
+    otherwise return None.
     """
     if id.startswith(PFX_EMBEDDED):
         ln = int(id[PFX_LEN:PFX_LEN+2])
@@ -20,6 +23,10 @@ def qualify_id(id, embedded_length = EMBEDDED_LENGTH):
         return None
 
 def unique_id(id, embedded_length = EMBEDDED_LENGTH):
+    """
+    Canonize topic identifier (internally either return embedded id
+    if present in this identifier, or normal id with leading zeroes stripped).
+    """
     n = qualify_id(id, embedded_length)
     if n:
         return n
@@ -27,8 +34,7 @@ def unique_id(id, embedded_length = EMBEDDED_LENGTH):
 
 class IdGen(object):
     """
-    Generator identyfikatorów uwzględniający możliwość
-    wklejania w id zewnętrznego identyfikatora.
+    Generate unique identifiers for topics. Used internally.
     """
     def __init__(self,
                  length = 26,

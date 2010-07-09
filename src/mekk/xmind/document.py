@@ -208,9 +208,10 @@ class Topic(DocumentPart):
         prefix to detect new topics.
 
         So, using get_embedded_id makes sense only on maps which
-        were initially created with mekk.xmind, and then makes it
-        possible to match topics before and after the map is edited
-        in XMind. The method returns None for topics created directly
+        were initially created with mekk.xmind. If such an id is specified
+        while topic is created, then it can be recognized after map is edited.
+
+        The method returns None for topics created directly
         inside XMind.
         """
         return qualify_id(self.topic_tag.get("id"))
