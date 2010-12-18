@@ -18,7 +18,7 @@ Publication of the new release:
 
 6) Publish egg:
 
-   python setup.py sdist.upload
+   python setup.py sdist upload
 
 7) Update description on pypi (if README changed)
 

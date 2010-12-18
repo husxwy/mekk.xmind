@@ -14,7 +14,7 @@ classifiers = [
     "License :: OSI Approved :: Artistic License",
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "Operating System :: OSI Independent",
+    "Operating System :: OS Independent",
     ]
 
 license = "Artistic" # or MPL 1.1
