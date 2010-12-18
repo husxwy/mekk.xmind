@@ -87,3 +87,10 @@ Use the same place to report bugs, suggest improvements and offer
 patches.
 
 .. _XMind: http://xmind.net
+
+License
+=======
+
+mekk.xmind is dual-licensed under Artistic License 2.0 and Mozilla Public
+License 1.1. The complete license texts can be found in Artistic-2.0.txt
+and MPL-1.1.txt.

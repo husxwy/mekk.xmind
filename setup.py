@@ -10,8 +10,14 @@ classifiers = [
     "Programming Language :: Python",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    # TODO: Development Status, Environment, Topic
+    "License :: OSI Approved :: Mozilla Public License 1.1 (MPL 1.1)",
+    "License :: OSI Approved :: Artistic License",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OSI Independent",
     ]
+
+license = "Artistic" # or MPL 1.1
 
 setup(name='mekk.xmind',
       version=version,
@@ -22,7 +28,7 @@ setup(name='mekk.xmind',
       author='Marcin Kasperski',
       author_email='Marcin.Kasperski@mekk.waw.pl',
       url='http://bitbucket.org/Mekk/mekk.xmind/',
-      license='Artistic',
+      license=license,
       package_dir={'':'src'},
       packages=find_packages('src', exclude=['ez_setup', 'examples', 'tests']),
       namespace_packages=['mekk'],
@@ -32,8 +38,4 @@ setup(name='mekk.xmind',
       install_requires=[
           'lxml >= 2.1.1',
       ],
-#      entry_points="""
-#      [babel.extractors]
-#      mako = mako.ext.babelplugin:extract
-#      """,
 )
