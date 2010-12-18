@@ -1,0 +1,25 @@
+Publication of the new release:
+
+1) Review README.txt (and other docs, if written)
+
+2) Test: 
+
+   python setup.py test
+
+3) Modify version number in setup.py, commit.
+
+4) Tag new version:
+
+   hg tag a-b-c
+
+5) Push sources:
+
+   hg push bitbucket
+
+6) Publish egg:
+
+   python setup.py sdist.upload
+
+7) Update description on pypi (if README changed)
+
+   python setup.py register
