@@ -56,7 +56,7 @@ To see more details about hook work, add --verbose or --debug::
 
 """
 
-VERSION = "1.2.3"
+VERSION = "0.5.1"
 
 def version_update(repo, ui, hooktype, pats, opts, **kwargs):
     """
