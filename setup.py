@@ -2,8 +2,9 @@
 # (c) 2008, Marcin Kasperski
 
 from setuptools import setup, find_packages
+import os
+execfile(os.path.join(os.path.dirname(__file__), "src", "mekk", "xmind", "version.py"))
 
-version = '0.5.0'
 long_description = open("README.txt").read()
 
 classifiers = [
@@ -20,7 +21,7 @@ classifiers = [
 license = "Artistic" # or MPL 1.1
 
 setup(name='mekk.xmind',
-      version=version,
+      version=VERSION,
       description="XMind data files reading and writing library.",
       long_description=long_description,
       classifiers=classifiers,
