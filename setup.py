@@ -3,7 +3,7 @@
 
 from setuptools import setup, find_packages
 import os
-execfile(os.path.join(os.path.dirname(__file__), "src", "mekk", "xmind", "version.py"))
+exec(open(os.path.join(os.path.dirname(__file__), "src", "mekk", "xmind", "version.py")).read())
 
 long_description = open("README.txt").read()
 
