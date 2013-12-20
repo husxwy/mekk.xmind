@@ -4,13 +4,15 @@
 """
 Create and parse XMind maps.
 """
+from __future__ import print_function
 
 from lxml import etree
 import zipfile
-from id_gen import IdGen, qualify_id, unique_id
-from xmlutil import XmlHelper, ns_name, \
+from .id_gen import IdGen, qualify_id, unique_id
+from .xmlutil import XmlHelper, ns_name, \
     CONTENT_NSMAP, STYLES_NSMAP, find_xpath
 import logging
+import six
 
 log = logging.getLogger(__name__)
 
@@ -18,9 +20,9 @@ DUMP_PARSED_DATA = False
 
 ATTACHMENTS_DIR = "attachments/"
 
-META_FILE_BODY = u'<?xml version="1.0" encoding="UTF-8" standalone="no"?>' + \
+META_FILE_BODY = six.u('<?xml version="1.0" encoding="UTF-8" standalone="no"?>') + \
     '<meta xmlns="urn:xmind:xmap:xmlns:meta:2.0" version="2.0"/>'
-MANIFEST_FILE_BODY = u'''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+MANIFEST_FILE_BODY = six.u('''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <manifest xmlns="urn:xmind:xmap:xmlns:manifest:1.0">
   <file-entry full-path="content.xml" media-type="text/xml"/>
   <file-entry full-path="META-INF/" media-type=""/>
@@ -28,7 +30,7 @@ MANIFEST_FILE_BODY = u'''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
   <file-entry full-path="styles.xml" media-type=""/>
   <file-entry full-path="Thumbnails/" media-type=""/>
   <file-entry full-path="Thumbnails/thumbnail.jpg" media-type="image/jpeg"/>
-</manifest>'''
+</manifest>''')
 
 # See org.xmind.ui.resources/markers/markerSheet.xml
 ALL_MARKS = [
@@ -93,7 +95,7 @@ class Legend(DocumentPart):
             XML node of <sheet>
         """
         legend_tag = doc.create_child(
-            sheet_tag, u"legend", visibility = "visible")
+            sheet_tag, six.u("legend"), visibility = "visible")
         return Legend(doc, legend_tag)
 
     def __init__(self, doc, legend_tag):
@@ -138,7 +140,7 @@ class Legend(DocumentPart):
         """
         markers_block = self.doc.find_or_create_child(
             self.legend_tag, "marker-descriptions")
-        self.doc.create_child(markers_block, u"marker-description",
+        self.doc.create_child(markers_block, six.u("marker-description"),
                               attrib={"marker-id": marker_id,
                                       "description": description})
 
@@ -154,12 +156,12 @@ class Sheet(DocumentPart):
         use ``XMindDocument.create_sheet`` instead.
         """
         sheet_tag = doc.create_child(doc.doc_tag, "sheet",
-                                     id = _id_gen.next())
+                                     id = six.advance_iterator(_id_gen))
         sheet = Sheet(doc, sheet_tag)
         sheet.set_title(sheet_name)
-        topic_tag = doc.create_child(sheet_tag, u"topic",
-                                     id = _id_gen.next())
-        doc.create_child(topic_tag, u"title").text = root_topic_name
+        topic_tag = doc.create_child(sheet_tag, six.u("topic"),
+                                     id = six.advance_iterator(_id_gen))
+        doc.create_child(topic_tag, six.u("title")).text = root_topic_name
         return sheet
 
     def __init__(self, doc, sheet_tag):
@@ -191,7 +193,7 @@ class Sheet(DocumentPart):
         not exist.
         """
         legend_tag = self.doc.find_only_child(
-            self.sheet_tag, u"legend", required = False)
+            self.sheet_tag, six.u("legend"), required = False)
         if legend_tag is not None:
             return Legend(self.doc, legend_tag)
         else:
@@ -251,7 +253,7 @@ class Topic(DocumentPart):
             single = True, required = False)
         if topics_tag is None:
             topics_tag = self.doc.create_child(
-                children_tag, u"topics", type = mode)
+                children_tag, six.u("topics"), type = mode)
         return topics_tag
 
     def add_subtopic(self, subtopic_title, 
@@ -272,9 +274,9 @@ class Topic(DocumentPart):
             but seems to work elsewhere too.
         """
         topics_tag = self._subtopics_tag(detached)
-        subtopic_tag = self.doc.create_child(topics_tag, u"topic",
+        subtopic_tag = self.doc.create_child(topics_tag, six.u("topic"),
                                              id = _id_gen.next(subtopic_emb_id))
-        self.doc.create_child(subtopic_tag, u"title").text = subtopic_title
+        self.doc.create_child(subtopic_tag, six.u("title")).text = subtopic_title
         return Topic(self.doc, subtopic_tag)
 
     def get_subtopics(self, detached = False):
@@ -374,7 +376,7 @@ class Topic(DocumentPart):
              file extension (used to signal the data format, for example
              ``.txt``, ``.html``, ``.zip``, ``.json``)
         """
-        att_name = _id_gen.next() + extension
+        att_name = six.advance_iterator(_id_gen) + extension
         self.doc._create_attachment(att_name, data)
         self.topic_tag.set("{http://www.w3.org/1999/xlink}href",
                            "xap:attachments/" + att_name)
@@ -466,7 +468,7 @@ class TopicStyle(object):
         """
         styles = doc.find_or_create_child(doc.styles_tag, "styles")
         style_tag = doc.create_child(styles, "style",
-                                     id = _id_gen.next(), type="topic")
+                                     id = six.advance_iterator(_id_gen), type="topic")
         doc.create_child(style_tag, "topic-properties",
                          attrib = {
                              "line-color" : line_color,
@@ -627,7 +629,7 @@ class XMindDocument(XmlHelper):
            self._serialize_xml(self.styles_tag))
         self._add_to_zip(zipf, "meta.xml", META_FILE_BODY)
         manifest_content = MANIFEST_FILE_BODY
-        for name, data in self.attachments.iteritems():
+        for name, data in six.iteritems(self.attachments):
             path = ATTACHMENTS_DIR + name
             self._add_to_zip(zipf, path, data)
             manifest_content = manifest_content.replace(
@@ -656,8 +658,8 @@ class XMindDocument(XmlHelper):
         """
         Debug helper, prints internal map structure to the screen
         """
-        print self._serialize_xml(self.doc_tag)
-        print self._serialize_xml(self.styles_tag)
+        print(self._serialize_xml(self.doc_tag))
+        print(self._serialize_xml(self.styles_tag))
 
     def attachment_names(self):
         """

@@ -10,9 +10,10 @@ Każdy zwraca obiekt Document gotowy do zapisu.
 """
 
 from mekk.xmind import XMindDocument
+import six
 
 def generate_simple():
-    doc = XMindDocument.create(u"Główny", u"Projekty")
+    doc = XMindDocument.create(six.u("Główny"), six.u("Projekty"))
     sheet = doc.get_first_sheet()
     root = sheet.get_root_topic()
     root.set_note("View the Help sheet for info\nwhat you can do with this map")
@@ -21,20 +22,20 @@ def generate_simple():
     #style_sub = doc.create_topic_style(fill = "CCCCCC")
 
     for i in range(1,5):
-        topic = root.add_subtopic(u"Elemiątko %d" % i, "b%d" % i)
+        topic = root.add_subtopic(six.u("Elemiątko %d") % i, "b%d" % i)
         topic.set_label("%d" % i)
         topic.set_style(style)
         topic.set_link("http://info.onet.pl")
         for j in range(1,3):
-            subtopic = topic.add_subtopic(u"Subelemiątko %d/%d" % (i,j),
-                                          u"a%da%d" % (i,j))
+            subtopic = topic.add_subtopic(six.u("Subelemiątko %d/%d") % (i,j),
+                                          six.u("a%da%d") % (i,j))
             subtopic.add_marker("task-start")
             if j < 2:
                 subtopic.add_marker("other-people")
 
     legend = sheet.get_legend()
-    legend.add_marker("task-start", u"Dzień dobry")
-    legend.add_marker("other-people", u"Do widzenia")
+    legend.add_marker("task-start", six.u("Dzień dobry"))
+    legend.add_marker("other-people", six.u("Do widzenia"))
 
     return doc
 

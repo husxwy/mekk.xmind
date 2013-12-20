@@ -6,6 +6,7 @@ Testy odczytu struktury mapy
 """
 import unittest, os
 from mekk.xmind import XMindDocument
+import six
 
 def open_doc(name):
     if not os.path.isfile(name):
@@ -20,7 +21,7 @@ class ReadTestCase(unittest.TestCase):
         root = sheet.get_root_topic()
 
         self.failUnlessEqual(root.get_title(), "Projekty")
-        self.failUnlessEqual(sheet.get_title(), u"Główny")
+        self.failUnlessEqual(sheet.get_title(), six.u("Główny"))
 
         self.failUnlessEqual(root.get_note(),
                 "View the Help sheet for info\nwhat you can do with this map")
@@ -38,7 +39,7 @@ class ReadTestCase(unittest.TestCase):
         for no, topic in enumerate(main_topics):
             i = no + 1
             self.failUnlessEqual(topic.get_title(),
-                                 u"Elemiątko %d" % i)
+                                 six.u("Elemiątko %d") % i)
             self.failUnlessEqual(topic.get_embedded_id(),
                                  "b%d" % i)
             self.failUnlessEqual(topic.get_label(), "%d" % i)
@@ -50,9 +51,9 @@ class ReadTestCase(unittest.TestCase):
             for mo, subtopic in enumerate(sub_topics):
                 j = mo + 1
                 self.failUnlessEqual(subtopic.get_title(),
-                                     u"Subelemiątko %d/%d" % (i,j))
+                                     six.u("Subelemiątko %d/%d") % (i,j))
                 self.failUnlessEqual(subtopic.get_embedded_id(),
-                                     u"a%da%d" % (i,j))
+                                     six.u("a%da%d") % (i,j))
                 markers = list( subtopic.get_markers() )
                 if j < 2:
                     self.failUnlessEqual(markers, ["task-start", "other-people"])
@@ -61,5 +62,5 @@ class ReadTestCase(unittest.TestCase):
 
         legend = sheet.get_legend()
         # TODO: test czytania legendy
-        legend.add_marker("task-start", u"Dzień dobry")
+        legend.add_marker("task-start", six.u("Dzień dobry"))
         #legend.add_marker("other-people", u"Do widzenia")

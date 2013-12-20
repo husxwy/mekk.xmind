@@ -8,7 +8,8 @@ exec(open(os.path.join(os.path.dirname(__file__), "src", "mekk", "xmind", "versi
 long_description = open("README.txt").read()
 
 classifiers = [
-    "Programming Language :: Python",
+    "Programming Language :: Python :: 2",
+    "Programming Language :: Python :: 3",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Libraries :: Python Modules",
     "License :: OSI Approved :: Mozilla Public License 1.1 (MPL 1.1)",

@@ -4,6 +4,8 @@
 """
 Embedded-id trick handling. See Topic.get_embedded_id for description
 """
+from __future__ import print_function
+import six
 
 PFX_EMBEDDED = "afaf"
 PFX_OTHER = "bfbf"
@@ -77,7 +79,7 @@ class IdGen(object):
 if __name__ == "__main__":
     gen = IdGen()
     for x in range(1, 5):
-        print gen.next()
-        print gen.next(x * x * x)
-        print gen.next("ABCDABCDABCDABCD")        
-        print gen.next("ABCDABCDABCDABCD")
+        print(six.advance_iterator(gen))
+        print(gen.next(x * x * x))
+        print(gen.next("ABCDABCDABCDABCD"))        
+        print(gen.next("ABCDABCDABCDABCD"))

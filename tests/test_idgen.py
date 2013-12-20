@@ -3,6 +3,7 @@
 import unittest, sets
 
 from mekk.xmind.id_gen import IdGen, qualify_id
+import six
 
 class EmbIdTestCase(unittest.TestCase):
 
@@ -33,20 +34,20 @@ class EmbIdTestCase(unittest.TestCase):
         
     def testNew(self):
         for i in range(0,10):
-            r = self.id_gen.next()
+            r = six.advance_iterator(self.id_gen)
             self.failIf(qualify_id(r))
 
     def testDifferentNonPfx(self):
         s = sets.Set()
-        for x in xrange(0, 10000):
-            d = self.id_gen.next()
+        for x in range(0, 10000):
+            d = six.advance_iterator(self.id_gen)
             self.failIf(d in s)
             s.add(d)
 
     def testDifferentEmb(self):
         s = sets.Set()
         for emb in ["WiCkqHbUtLpLxZkF", "J9nZh0Q7JdMxHTOF", "Ala"]:
-            for x in xrange(0, 2000):
-                d = self.id_gen.next()
+            for x in range(0, 2000):
+                d = six.advance_iterator(self.id_gen)
                 self.failIf(d in s)
                 s.add(d)
