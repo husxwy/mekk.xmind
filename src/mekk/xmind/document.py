@@ -4,7 +4,7 @@
 """
 Create and parse XMind maps.
 """
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 
 from lxml import etree
 import zipfile
@@ -20,9 +20,9 @@ DUMP_PARSED_DATA = False
 
 ATTACHMENTS_DIR = "attachments/"
 
-META_FILE_BODY = six.u('<?xml version="1.0" encoding="UTF-8" standalone="no"?>') + \
+META_FILE_BODY = '<?xml version="1.0" encoding="UTF-8" standalone="no"?>' + \
     '<meta xmlns="urn:xmind:xmap:xmlns:meta:2.0" version="2.0"/>'
-MANIFEST_FILE_BODY = six.u('''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+MANIFEST_FILE_BODY = '''<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <manifest xmlns="urn:xmind:xmap:xmlns:manifest:1.0">
   <file-entry full-path="content.xml" media-type="text/xml"/>
   <file-entry full-path="META-INF/" media-type=""/>
@@ -30,7 +30,7 @@ MANIFEST_FILE_BODY = six.u('''<?xml version="1.0" encoding="UTF-8" standalone="n
   <file-entry full-path="styles.xml" media-type=""/>
   <file-entry full-path="Thumbnails/" media-type=""/>
   <file-entry full-path="Thumbnails/thumbnail.jpg" media-type="image/jpeg"/>
-</manifest>''')
+</manifest>'''
 
 # See org.xmind.ui.resources/markers/markerSheet.xml
 ALL_MARKS = [
@@ -95,7 +95,7 @@ class Legend(DocumentPart):
             XML node of <sheet>
         """
         legend_tag = doc.create_child(
-            sheet_tag, six.u("legend"), visibility = "visible")
+            sheet_tag, "legend", visibility = "visible")
         return Legend(doc, legend_tag)
 
     def __init__(self, doc, legend_tag):
@@ -140,7 +140,7 @@ class Legend(DocumentPart):
         """
         markers_block = self.doc.find_or_create_child(
             self.legend_tag, "marker-descriptions")
-        self.doc.create_child(markers_block, six.u("marker-description"),
+        self.doc.create_child(markers_block, "marker-description",
                               attrib={"marker-id": marker_id,
                                       "description": description})
 
@@ -159,9 +159,9 @@ class Sheet(DocumentPart):
                                      id = six.advance_iterator(_id_gen))
         sheet = Sheet(doc, sheet_tag)
         sheet.set_title(sheet_name)
-        topic_tag = doc.create_child(sheet_tag, six.u("topic"),
+        topic_tag = doc.create_child(sheet_tag, "topic",
                                      id = six.advance_iterator(_id_gen))
-        doc.create_child(topic_tag, six.u("title")).text = root_topic_name
+        doc.create_child(topic_tag, "title").text = root_topic_name
         return sheet
 
     def __init__(self, doc, sheet_tag):
@@ -193,7 +193,7 @@ class Sheet(DocumentPart):
         not exist.
         """
         legend_tag = self.doc.find_only_child(
-            self.sheet_tag, six.u("legend"), required = False)
+            self.sheet_tag, "legend", required = False)
         if legend_tag is not None:
             return Legend(self.doc, legend_tag)
         else:
@@ -253,7 +253,7 @@ class Topic(DocumentPart):
             single = True, required = False)
         if topics_tag is None:
             topics_tag = self.doc.create_child(
-                children_tag, six.u("topics"), type = mode)
+                children_tag, "topics", type = mode)
         return topics_tag
 
     def add_subtopic(self, subtopic_title, 
@@ -274,9 +274,9 @@ class Topic(DocumentPart):
             but seems to work elsewhere too.
         """
         topics_tag = self._subtopics_tag(detached)
-        subtopic_tag = self.doc.create_child(topics_tag, six.u("topic"),
+        subtopic_tag = self.doc.create_child(topics_tag, "topic",
                                              id = _id_gen.next(subtopic_emb_id))
-        self.doc.create_child(subtopic_tag, six.u("title")).text = subtopic_title
+        self.doc.create_child(subtopic_tag, "title").text = subtopic_title
         return Topic(self.doc, subtopic_tag)
 
     def get_subtopics(self, detached = False):

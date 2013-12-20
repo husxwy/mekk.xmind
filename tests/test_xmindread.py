@@ -4,6 +4,8 @@
 """
 Testy odczytu struktury mapy
 """
+from __future__ import unicode_literals
+
 import unittest, os
 from mekk.xmind import XMindDocument
 import six
@@ -21,7 +23,7 @@ class ReadTestCase(unittest.TestCase):
         root = sheet.get_root_topic()
 
         self.failUnlessEqual(root.get_title(), "Projekty")
-        self.failUnlessEqual(sheet.get_title(), six.u("Główny"))
+        self.failUnlessEqual(sheet.get_title(), "Główny")
 
         self.failUnlessEqual(root.get_note(),
                 "View the Help sheet for info\nwhat you can do with this map")
@@ -39,7 +41,7 @@ class ReadTestCase(unittest.TestCase):
         for no, topic in enumerate(main_topics):
             i = no + 1
             self.failUnlessEqual(topic.get_title(),
-                                 six.u("Elemiątko %d") % i)
+                                 "Elemiątko %d" % i)
             self.failUnlessEqual(topic.get_embedded_id(),
                                  "b%d" % i)
             self.failUnlessEqual(topic.get_label(), "%d" % i)
@@ -51,9 +53,9 @@ class ReadTestCase(unittest.TestCase):
             for mo, subtopic in enumerate(sub_topics):
                 j = mo + 1
                 self.failUnlessEqual(subtopic.get_title(),
-                                     six.u("Subelemiątko %d/%d") % (i,j))
+                                     "Subelemiątko %d/%d" % (i,j))
                 self.failUnlessEqual(subtopic.get_embedded_id(),
-                                     six.u("a%da%d") % (i,j))
+                                     "a%da%d" % (i,j))
                 markers = list( subtopic.get_markers() )
                 if j < 2:
                     self.failUnlessEqual(markers, ["task-start", "other-people"])
@@ -62,5 +64,5 @@ class ReadTestCase(unittest.TestCase):
 
         legend = sheet.get_legend()
         # TODO: test czytania legendy
-        legend.add_marker("task-start", six.u("Dzień dobry"))
+        legend.add_marker("task-start", "Dzień dobry")
         #legend.add_marker("other-people", u"Do widzenia")

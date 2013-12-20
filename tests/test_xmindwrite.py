@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 # (c) 2008, Marcin Kasperski
 
+from __future__ import unicode_literals
+
 import unittest
 import zipfile
 import tempfile
 import os
 import re
+from lxml import objectify, etree
 from sample_maps import generate_simple
-
+import six
 
 def linewiseEnsureEqual(testcase, expected, obtained,
                         ignoreInternalId = False,
@@ -19,7 +22,7 @@ def linewiseEnsureEqual(testcase, expected, obtained,
     W razie rozbieżności woła fail, inaczej nic nie robi.
     ignoreDateTimeMismatch powoduje ignorowanie wierszy PGN z datą/czasem
     """
-    if type(obtained) != type(""):
+    if not isinstance(obtained, six.string_types):
         raise AssertionError("Obtained data are not string: " + str(obtained))
     obtainedlines = obtained.split('\n')
     expectedlines = expected.split('\n')
@@ -56,7 +59,7 @@ def linewiseEnsureEqual(testcase, expected, obtained,
                 obt = obtainedlines[i-1] + "\n" + obt
                 exp = expectedlines[i-1] + "\n" + exp
             testcase.fail(
-                ("Line %d mismatch at pos %d.\nExpected:\n" % (i+1, cpl))
+                ("Line %d mismatch at pos %d.\n" % (i+1, cpl))
                 + "\nObtained:\n"
                 + obt
                 + "\nExpected:\n"
@@ -119,8 +122,14 @@ class MapCompareBase(object):
     def testSameMeta(self):
         return self._sameXml("meta.xml")
     def _sameXml(self, name):
-        pat = self.pattern.read(name)
-        got = self.generated.read(name)
+        #pat = self.pattern.read(name).decode("utf-8")
+        #got = self.generated.read(name).decode("utf-8")
+        # Normalize (to sort attributes). Note: this is not formally proven,
+        # if fails, another method may be needed
+        patobj = objectify.fromstring(self.pattern.read(name))
+        gotobj = objectify.fromstring(self.generated.read(name))
+        pat = etree.tostring(patobj, pretty_print=True)
+        got = etree.tostring(gotobj, pretty_print=True)
         linewiseEnsureEqual(self, pat, got,
                             ignoreInternalId = True,
                             showLongerPart = True)
